@@ -97,12 +97,14 @@ bool is_mult(int first_number, int second_number) {
   return false;
 }
 
-bool is_triangle(double a, double b, double c, double eps) {
-  double mx = fabs(fmax(a,fmax(b,c)));
-  if (fabs(mx - (a+b+c - mx)) < eps && (a >  eps && b > eps && c > eps)) {
-    return true;
-  }
-  return false;
+bool is_triangle(double side1, double side2, double side3, double epsilon) {
+  if(fabsl(side1 * side1 + side2 * side2 - side3 * side3) <= epsilon ||
+      fabsl(side1 * side1 + side3 * side3 - side2 * side2) <= epsilon ||
+      fabsl(side2 * side2 + side3 * side3 - side1 * side1) <= epsilon)
+      return true;
+  else
+      return false;
+
 }
 
 enum statuses solve_equation(double a, double b, double c, double eps, double* res1, double* res2) {
@@ -195,7 +197,7 @@ int main(int argc,char* argv[]) {
       }
     }
 
-    break;
+    break; 
   case 'm':
     if (argc != 4) {
       printf("Incorrect num of args for [-m] flag\n");
@@ -230,11 +232,11 @@ int main(int argc,char* argv[]) {
       return 0;
     }
 
-    char* ptr;
+    char* ptr, *ptr1, *ptr2, *ptr3;
     double epsilon = strtod(argv[2], &ptr), 
-    first_side = strtod(argv[3], &ptr),
-    second_side = strtod(argv[4], &ptr),
-    third_side = strtod(argv[5], &ptr);
+    first_side = strtod(argv[3], &ptr1),
+    second_side = strtod(argv[4], &ptr2),
+    third_side = strtod(argv[5], &ptr3);
     if (!is_float(argv[2]) || !is_float(argv[3]) || !is_float(argv[4]) || 
     !is_float(argv[5])) {
       printf("Incorrect input.\n");
