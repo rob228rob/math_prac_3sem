@@ -9,10 +9,20 @@
 const double err = 1e10;
 const int c = 3;
 
-bool correct_num(const char* str) {
+bool is_int(const char* str) {
   size_t length = strlen(str);
   for (int i = 0; i < length; ++i) {
     if (!isdigit(str[i])) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool is_float(const char* num) {
+  size_t length = strlen(num);
+  for (int i = 0; i < length; ++i) {
+    if ((num[i] < '0' || num[i] > '9') && (num[i] != '.')) {
       return false;
     }
   }
@@ -73,9 +83,10 @@ void get_result_of_equation(double* array_answ, double discr,
     }
 
     double square_discr = pow(discr, 1/2);
-    array_answ[i]  =  (-b + square_discr)/2*a;
+    array_answ[i]  = (-b + square_discr)/2*a;
     array_answ[i+1] = (-b - square_discr)/2*a;
     
+    return;
 }
 
 void solve_equation(double first_coeff, double second_coeff, double third_coeff, double* array_answ, double eps) {
@@ -89,7 +100,7 @@ void solve_equation(double first_coeff, double second_coeff, double third_coeff,
     discr[2] = c*c - 4 * a*b;
 
 
-    for (int i = 0; i < 6; i += 2) { //&!&&!&!&!&!&!&1!!!
+    for (int i = 0; i < 6; i += 2) { 
         get_result_of_equation(array_answ, discr[i], a, b, c, i, e);
         double temp = a;
         a = b;
@@ -108,12 +119,11 @@ bool is_mult(int first_number, int second_number) {
 }
 
 bool is_triangle(double a, double b, double c, double eps) {
-  if (fabs(a - (b+c)) <= eps ||
-      fabs(b - (a+c)) <= eps ||
-      fabs(c - (b+a)) <= eps) {
-    return false;
+  double mx = fabs(fmax(a,fmax(b,c)));
+  if ((mx - (a+b+c - mx)) < eps && (a >  eps && b > eps && c > eps)) {
+    return true;
   }
-  return true;
+  return false;
 }
 
 int zero_quantity(double a, double b, double c) {
@@ -136,8 +146,6 @@ int main(int argc,char* argv[]) {
   char flag = argv[1][1];
   double* array_answ;
   int length = 0;
-  bool temp;
-  char* str;
   long long summ = 0;
   long long mult;
 
@@ -145,14 +153,15 @@ int main(int argc,char* argv[]) {
   {
   case 'q':
     if (argc != 6) {
-    printf("Incorrect num of args for [-q] flag\n");
-    return 0;
+      printf("Incorrect num of args for [-q] flag\n");
+      return 1;
     }
     array_answ = (double*)malloc(sizeof(double) * 6);
     double epsilon = (double)atof(argv[2]);
     if (epsilon <= 0) {
       printf("Incorrect value of epsilon\n");
-      return 0;
+      free(array_answ);
+      return 1;
     }
 
     double first_coeff = (double) atof(argv[3]);
@@ -161,15 +170,17 @@ int main(int argc,char* argv[]) {
 
     int temp = zero_quantity(first_coeff, second_coeff, third_coeff);
     if (temp == 3) {
+      free(array_answ);
       printf("Input correct coefficients.\n");
-      return 0;
+      return 1;
     } else if (temp == 2) {
+      free(array_answ);
       printf("There's only one root - [ 0 ].\n");
       return 0;
     }
 
     solve_equation(first_coeff, second_coeff, third_coeff, array_answ, epsilon);
-    int arr_length = sizeof(array_answ)/sizeof(double);
+    
     for (int i = 0; i < 6; ++i) {
       if (array_answ[i] == err) {
         printf("Incorrect coefficients. Discriminant less than 0.\n");
@@ -182,46 +193,62 @@ int main(int argc,char* argv[]) {
     }
     free(array_answ);
     break;
+
   case 'm':
     if (argc != 4) {
       printf("Incorrect num of args for [-m] flag\n");
       return 0;
     }
+
     int first_num, second_num;
+    if (!is_int(argv[2]) || !is_int(argv[3])) {
+      printf("Incorrect input. Number must be integer.\n");
+      return 1;
+    }
+
     first_num = atoi(argv[2]);
     second_num = atoi(argv[3]);
 
     if (first_num == 0 || second_num == 0) {
-      printf("Incorrect input.\nBoth of number must not be 0.\n");
+      printf("Incorrect input. There're must be two correct integer.\n");
       return 0;
     }
     if (!is_mult(first_num, second_num)) {
       printf("First number isnt multiple to second.\n");
     } else {
-      printf("First number multiple to second.\n");
+      printf("[ %d ] multiple to [ %d ].\n", first_num, second_num);
+      return 0;
     }
+
     break;
+
   case 't':
     if (argc != 6) {
       printf("Incorrect num of args for [-t] flag\n"); 
       return 0;
     }
 
-    double eps = atof(argv[2]), 
-    first_side = atof(argv[3]),
-    second_side = atof(argv[4]),
-    third_side = atof(argv[5]);
+    char* ptr;
+    double eps = strtod(argv[2], &ptr), 
+    first_side = strtod(argv[3], &ptr),
+    second_side = strtod(argv[4], &ptr),
+    third_side = strtod(argv[5], &ptr);
+    if (!is_float(argv[2]) || !is_float(argv[3]) || !is_float(argv[4]) || 
+    !is_float(argv[5])) {
+      printf("Incorrect input.\n");
+      return 1;
+    }
 
     if (eps <= 0) {
-      printf("Incorrect value of epsilon\n");
-      return 0;
+      printf("Incorrect value of epsilon.\n");
+      return 1;
     }
 
     bool tmp = is_triangle(first_side, second_side, third_side, eps);
     if (tmp) {
       printf("sides [%.2lf; %.2lf; %.2lf] \ncan be a triangle.\n", first_side, second_side, third_side);
     } else {
-      printf("sides [%.2lf; %.2lf;% .2lf] \nCAN NOT be a triangle.\n", first_side, second_side, third_side);
+      printf("sides [%.2lf; %.2lf;% .2lf] \n isn't triangle.\n", first_side, second_side, third_side);
     }
     break;
 
