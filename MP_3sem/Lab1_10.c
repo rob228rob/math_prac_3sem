@@ -3,52 +3,57 @@
 #include <string.h>
 #include <stdlib.h>
 #include <malloc.h>
+#include <stdbool.h>
 
+enum statuses {
+    ok,
+    memory_error,
+    invalid_data,
+    undefined_behavior
+};
 
-int convertToDecimal(char number[], int base) {
-    int decimalNumber = 0;
-    int power = 0;
-    int length = strlen(number);
+enum statuses convert_to_base(int num, int base, char** final_result) {
+    char digits[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    int index = 0;
+    char result[100];
     
-    for (int i = length - 1; i >= 0; i--) {
-        int digit;
-        
-        if (number[i] >= '0' && number[i] <= '9') {
-            digit = number[i] - '0';
-        } else if (number[i] >= 'A' && number[i] <= 'Z') {
-            digit = number[i] - 'A' + 10;
-        }
-        
-        decimalNumber += digit * pow(base, power);
-        power++;
+    if(num == 0 || base < 2 || base > 36) {
+        return invalid_data;
     }
     
-    return decimalNumber;
+    while(num > 0) {
+        result[index++] = digits[num % base];
+        num /= base;
+    }
+    
+    (*final_result) = (char*)malloc(sizeof(char)*strlen(result) + 1);
+    
+    if (*final_result == NULL) {
+        return memory_error;
+    }
+
+    strcpy(*final_result, result);
+    return ok;
 }
 
-void convertFromDecimal(int decimalNumber, int base, char** num) {
-    char convertedNumber[100];
-    int index = 0;
+bool is_valid_number(char* num, int base) {
+    char valid_digits[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     
-    while (decimalNumber != 0) {
-        int remainder = decimalNumber % base;
-        
-        if (remainder >= 0 && remainder <= 9) {
-            convertedNumber[index] = remainder + '0';
-        } else if (remainder >= 10 && remainder <= 35) {
-            convertedNumber[index] = remainder - 10 + 'A';
+    for(int i = 0; i < strlen(num); i++) {
+        bool is_valid_digit = false;
+        for(int j = 0; j < base; j++) {
+            if(num[i] == valid_digits[j]) {
+                is_valid_digit = true;
+                break;
+            }
         }
         
-        decimalNumber /= base;
-        index++;
+        if(!is_valid_digit) {
+            return false;
+        }
     }
-    *num = (char*)malloc(sizeof(char)*(index+1));
     
-    if (*num == NULL) {
-        return;
-    }
-
-    strcpy((*num),convertedNumber);
+    return true;
 }
 
 void max_of_array(int* array, int length, int* result) {
@@ -59,45 +64,68 @@ void max_of_array(int* array, int length, int* result) {
     *result = max_val;
 }
 
+char* response(int status) {
+    if (status == ok) return "ok";
+    else if (status == invalid_data) return "invalid data";
+    else if (status == memory_error) return "memory error";
+    else if (status == undefined_behavior) return "undefined behavior";
+}
 
 void result_print(int max_val) {
-    char* str1,* str2, * str3, * str4;
-    convertFromDecimal(max_val, 9, &str1);
-    convertFromDecimal(max_val, 18, &str2);
-    convertFromDecimal(max_val, 27, &str3);
-    convertFromDecimal(max_val, 36, &str4);
-
-    printf("With base 9: %s\n", str1);
-    printf("With base 10: %d\n", max_val);
-    printf("With base 18: %s\n", str2);
-    printf("With base 27: %s\n", str3);
-    printf("With base 36: %s\n", str4);
+    int n = 9;
+    printf("With base 10: %d\n",max_val);
+    for (int i = 0; i < 4; ++i) {
+        char* str;
+        enum statuses status = convert_to_base(max_val, n, &str);
+        if (status == ok) {
+            printf("With base %d: %s\n",n, str);
+        } else {
+            printf("%s\n", response(status));
+        }
+        free(str);
+        n += 9;
+    }
 }
 
 int main() {
-    int baseFrom, baseTo;
+    int base_from;
     char terminator[] = "Stop";
     
     printf("Enter the base of the numbers: \n");
-    scanf("%d", &baseFrom);
+    scanf("%d", &base_from);
     
     int* arr_abs_value = (int*)malloc(sizeof(int)*1);
     int index = 0;
+
     while (1)
     {
-        //char number =(char*)malloc(sizeof(char)*100);
-        char number[100];
+        char* number = (char*)malloc(sizeof(char)*100);
         scanf("%s", number);
-        if (strcmp(number,terminator) == 0) break;
-        int decimalNumber = convertToDecimal(number, baseFrom);
-        arr_abs_value[index] = decimalNumber;
+
+        if (strcmp(number,terminator) == 0) {
+            break;
+        } 
+
+        if (!is_valid_number(number, base_from)) {
+            printf("Invalid number.\n");
+            free(number);
+            free(arr_abs_value);
+            return 1;
+        }
+
+
+        char* endptr;
+        int decimal_number = strtoll(number, &endptr, base_from);
+        arr_abs_value[index] = decimal_number;
         index++;
         arr_abs_value = (int*)realloc(arr_abs_value,(index+1)*sizeof(int));
-        //free(number);
+        free(number);
     }
+
     int max_val;
     max_of_array(arr_abs_value, index, &max_val);
     result_print(max_val);
+    free(arr_abs_value);
     
     return 0;
 }
