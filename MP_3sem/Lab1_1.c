@@ -239,7 +239,7 @@ int main(int argc,char* argv[]) {
     break;
   case 'a':
     summ = sum_to_num(current_num);
-    if (sum_to_num != -1) {
+    if (summ != -1) {
       printf("Too large number.\n");
       free(string_num);
       return 1;

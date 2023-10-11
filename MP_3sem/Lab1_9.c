@@ -81,14 +81,24 @@ int get_nearest(int* arr, int length, int value) {
     int answer = arr[0];
     for (int i = 0; i < length; ++i) {
         if (fabs(arr[i] - value) < fabs(answer - value)) {
-            answer = arr[i];;
+            answer = arr[i];
         }
     }
     return answer;
 }
 
+void print_arr(int* arr, int length) {
+    for (int i = 0; i < length; ++i) {
+        printf("%d ", arr[i]);
+    }
+    printf("\n");
+}
+
 enum random generate_array_C(int** arrC, int* arrA,int* arrB, int lengthA, int lengthB) {
     (*arrC) = (int*)malloc(sizeof(int)*lengthA);
+    if (*arrC == NULL) {
+        return memory_error;
+    }
     if (arrC == NULL) return incorrect_memory_allocation;
     if (arrA == NULL || arrB == NULL) return memory_error;
 
@@ -99,6 +109,7 @@ enum random generate_array_C(int** arrC, int* arrA,int* arrB, int lengthA, int l
 }
 
 int main(int argc,char* argv[]) {
+    srand(time(NULL));
     if (argc != 3) {
         printf("Incorrect num of args.\n");
         return 0;
@@ -114,6 +125,7 @@ int main(int argc,char* argv[]) {
         return 0;
     }
     enum random func = random_value_of_arr(arr, length, A, B);
+    print_arr(arr, 50);
 
     if (func != ok) {
         printf("Something went wrong: %s\n", response(func));
@@ -125,19 +137,28 @@ int main(int argc,char* argv[]) {
         printf("Something went wrong: %s\n", response(temp));
         return 0;
     }
+    //print_arr(arr, 50);
     free(arr);
 
     const int length1 = rand() %  (10000 + 10) - 10;
+    //printf("%d\n", length1);
     const int length2 = rand() % (10000 + 10) - 10;
+
     int* arrA = (int*)malloc(sizeof(int)*length1);
     int* arrB = (int*)malloc(sizeof(int)*length2);
+
     random_value_of_arr(arrA, length1, -1000, 1000);
     random_value_of_arr(arrB, length2, -1000, 1000);
+    //print_arr(arrA, length1);
+    //print_arr(arrB, length2);
+
     int* arrC;
     enum random value = generate_array_C(&arrC, arrA, arrB, length1, length2);
     if (value != 0) {
         printf("Something went wrong: %s\n", response(value));
     }
+    //print_arr(arrC, length1);
+    
     free(arrA);
     free(arrB);
     free(arrC);

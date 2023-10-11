@@ -99,7 +99,7 @@ int main() {
 
     while (1)
     {
-        char* number = (char*)malloc(sizeof(char)*100);
+        char number[100];
         scanf("%s", number);
 
         if (strcmp(number,terminator) == 0) {
@@ -108,18 +108,16 @@ int main() {
 
         if (!is_valid_number(number, base_from)) {
             printf("Invalid number.\n");
-            free(number);
+            
             free(arr_abs_value);
             return 1;
         }
-
 
         char* endptr;
         int decimal_number = strtoll(number, &endptr, base_from);
         arr_abs_value[index] = decimal_number;
         index++;
         arr_abs_value = (int*)realloc(arr_abs_value,(index+1)*sizeof(int));
-        free(number);
     }
 
     int max_val;

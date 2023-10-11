@@ -5,9 +5,29 @@
 #include <ctype.h>
 #include <stdlib.h>
 #include <math.h>
+#include <limits.h>
+#include <float.h>
 
 const double err = 1e10;
 const int c = 3;
+
+enum statuses {
+    ok,
+    memory_error,
+    invalid_data,
+    undefined_behavior,
+    only_one_root,
+    negative_discr
+};
+
+void response(int status) {
+    if (status == ok) printf("ok\n");
+    else if (status == invalid_data) printf("invalid data\n");
+    else if (status == memory_error) printf("memory error\n");
+    else if (status == undefined_behavior) printf("undefined behavior\n");
+    else if (status == only_one_root) printf("only_one_root\n");
+    else if (status == negative_discr) printf("negative_discr\n");
+}
 
 bool is_int(const char* str) {
   size_t length = strlen(str);
@@ -22,7 +42,7 @@ bool is_int(const char* str) {
 bool is_float(const char* num) {
   size_t length = strlen(num);
   for (int i = 0; i < length; ++i) {
-    if ((num[i] < '0' || num[i] > '9') && (num[i] != '.')) {
+    if ((num[i] < '0' || num[i] > '9') && (num[i] != '.' && num[0] != '-')) {
       return false;
     }
   }
@@ -69,47 +89,6 @@ void calculating_degree(int degree, int* res_arr) {
   }
 }
 
-void get_result_of_equation(double* array_answ, double discr,
-    double a, double b, double c, int i, double eps) {
-    if (fabs(discr) < eps) {
-      array_answ[i] = err;
-      array_answ[i+1] = err;
-      return;
-    }
-    if (a == 0) {
-      array_answ[i] = -b/c;
-      array_answ[i+1] = -b/c;
-      return;
-    }
-
-    double square_discr = pow(discr, 1/2);
-    array_answ[i]  = (-b + square_discr)/2*a;
-    array_answ[i+1] = (-b - square_discr)/2*a;
-    
-    return;
-}
-
-void solve_equation(double first_coeff, double second_coeff, double third_coeff, double* array_answ, double eps) {
-    double a = first_coeff;
-    double b = second_coeff;
-    double c = third_coeff;
-    double e = eps;
-    double* discr = (double*)malloc(sizeof(double) * 3);
-    discr[0] = a*a - 4 * b * c;
-    discr[1]= b*b - 4*c*a;
-    discr[2] = c*c - 4 * a*b;
-
-
-    for (int i = 0; i < 6; i += 2) { 
-        get_result_of_equation(array_answ, discr[i], a, b, c, i, e);
-        double temp = a;
-        a = b;
-        b = c;
-        c = temp;
-    }
-    
-    return;
-}
 
 bool is_mult(int first_number, int second_number) {
   if (first_number % second_number == 0) {
@@ -120,20 +99,33 @@ bool is_mult(int first_number, int second_number) {
 
 bool is_triangle(double a, double b, double c, double eps) {
   double mx = fabs(fmax(a,fmax(b,c)));
-  if ((mx - (a+b+c - mx)) < eps && (a >  eps && b > eps && c > eps)) {
+  if (fabs(mx - (a+b+c - mx)) < eps && (a >  eps && b > eps && c > eps)) {
     return true;
   }
   return false;
 }
 
-int zero_quantity(double a, double b, double c) {
-  int num_of_zero = 0;
-  double* arr = (double*)malloc(sizeof(double)*3);
-  arr[0] = a; arr[1] = b; arr[2] = c;
-  for (int i = 0; i < 3; ++i) {
-    if (arr[i] == 0) num_of_zero++;
+enum statuses solve_equation(double a, double b, double c, double eps, double* res1, double* res2) {
+  if (a == 0 && c != 0) {
+    *res1 = -b/c;
+    return only_one_root;
+  } else if (a == 0 && c == 0) {
+    *res1 = 0;
+    return only_one_root;
   }
-  return num_of_zero;
+
+  double discr = b*b-4*a*c;
+  if (discr < eps) {
+    return negative_discr;
+  } else if (discr - eps == 0) {
+    *res1 = -b/(2*a);
+    return only_one_root;
+  } else {
+    double sqrt_d = pow(discr, 1/2) ;
+    *res1 = (-b + sqrt_d)/(2 * a) ;
+    *res2 = (-b - sqrt_d) /(2 * a) ;
+    return ok;
+  }
 }
 
 int main(int argc,char* argv[]) {
@@ -156,44 +148,54 @@ int main(int argc,char* argv[]) {
       printf("Incorrect num of args for [-q] flag\n");
       return 1;
     }
-    array_answ = (double*)malloc(sizeof(double) * 6);
-    double epsilon = (double)atof(argv[2]);
-    if (epsilon <= 0) {
-      printf("Incorrect value of epsilon\n");
-      free(array_answ);
+
+    double a = (double) atof(argv[3]);
+    double b = (double) atof(argv[4]);
+    double c = (double) atof(argv[5]);
+    if (strlen(argv[2]) > 15 || strlen(argv[3]) > 15 || strlen(argv[4]) > 15 || strlen(argv[5]) > 15) {
+      printf("overflowed\n");
       return 1;
     }
-
-    double first_coeff = (double) atof(argv[3]);
-    double second_coeff = (double) atof(argv[4]);
-    double third_coeff = (double) atof(argv[5]);
-
-    int temp = zero_quantity(first_coeff, second_coeff, third_coeff);
-    if (temp == 3) {
-      free(array_answ);
-      printf("Input correct coefficients.\n");
+    double eps = (double)atof(argv[2]);
+    if (eps <= 0) {
+      printf("Incorrect eps.\n");
       return 1;
-    } else if (temp == 2) {
-      free(array_answ);
-      printf("There's only one root - [ 0 ].\n");
-      return 0;
     }
-
-    solve_equation(first_coeff, second_coeff, third_coeff, array_answ, epsilon);
     
-    for (int i = 0; i < 6; ++i) {
-      if (array_answ[i] == err) {
-        printf("Incorrect coefficients. Discriminant less than 0.\n");
-      } else if (array_answ[i] == -err) {
-        printf("Its a default equation. X = %lf\n", array_answ[i]);
-      } else {
-        printf("[ %.1lf ] - solve of equation\n", array_answ[i]);
-      }
-      if (i % 2 != 0) printf("\n");
+    if (!is_float(argv[3]) || !is_float(argv[4]) || !is_float(argv[5]) ) {
+      printf("Invalid coeffs. \n");
+      return 1;
     }
-    free(array_answ);
-    break;
+    
+    double* coeff = (double*)malloc(sizeof(double)*3);
+    if (coeff == NULL) {
+      printf("Allocation memory error.\n");
+      return 1;
+    }
 
+    coeff[0] = a, coeff[1] = b; coeff[2] = c;
+    for (int i = 0; i < 3; ++i) {
+      for (int j = 0; j < 3; ++j) {
+        for (int k = 0; k < 3; ++k) {
+          if (i == j || j == k || i == k) {
+            continue;
+          }
+          double res1, res2;     
+          enum statuses status = solve_equation(coeff[i], coeff[j], coeff[k], eps, &res1, &res2);
+          if ( status == only_one_root) {
+            //response(status);
+            printf("[ %.3lf ] - once root\n", res1); 
+          } else if (status == negative_discr) {
+            response(status);
+          } else if (status == ok) {
+            printf("[ %.3lf ] - first root.\n[ %.3lf ] - second root.\n", res1, res2);
+          }
+          printf("---------------\n");
+        }
+      }
+    }
+
+    break;
   case 'm':
     if (argc != 4) {
       printf("Incorrect num of args for [-m] flag\n");
@@ -229,7 +231,7 @@ int main(int argc,char* argv[]) {
     }
 
     char* ptr;
-    double eps = strtod(argv[2], &ptr), 
+    double epsilon = strtod(argv[2], &ptr), 
     first_side = strtod(argv[3], &ptr),
     second_side = strtod(argv[4], &ptr),
     third_side = strtod(argv[5], &ptr);
@@ -239,12 +241,12 @@ int main(int argc,char* argv[]) {
       return 1;
     }
 
-    if (eps <= 0) {
+    if (epsilon <= 0) {
       printf("Incorrect value of epsilon.\n");
       return 1;
     }
 
-    bool tmp = is_triangle(first_side, second_side, third_side, eps);
+    bool tmp = is_triangle(first_side, second_side, third_side, epsilon);
     if (tmp) {
       printf("sides [%.2lf; %.2lf; %.2lf] \ncan be a triangle.\n", first_side, second_side, third_side);
     } else {
@@ -259,3 +261,11 @@ int main(int argc,char* argv[]) {
   
   return 0;
 }
+
+
+
+
+
+
+
+
