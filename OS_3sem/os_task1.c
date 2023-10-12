@@ -12,7 +12,6 @@ int main(int argc, char* argv[]) {
     FILE* file = fopen(argv[1], "w");
     if (file == NULL) {
         printf("Can't open file to write.\n");
-        fclose(file);
         return 1;
     }
 
@@ -29,7 +28,6 @@ int main(int argc, char* argv[]) {
     file = fopen(argv[1], "r");
     if (file == NULL) {
         printf("Can't open file to read.\n");
-        fclose(file);
         return 1;
     }
     
@@ -44,7 +42,6 @@ int main(int argc, char* argv[]) {
     file = fopen(argv[1], "r");
     if (file == NULL) {
         printf("Can't open file to read.\n");
-        fclose(file);
         return 1;
     }
 
