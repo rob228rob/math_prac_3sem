@@ -55,6 +55,7 @@ int main(int argc, char* argv[]) {
     }
     
     int size_read = fread(buffer, sizeof(char), buffer_size, file);
+    
     if (size_read != buffer_size) {
         printf("Incorrect buffer read.\n");
         fclose(file);
