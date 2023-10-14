@@ -65,7 +65,7 @@ int main(int argc, char* argv[]) {
     }
 
     fclose(file);
-
+    free(buffer);
     return 0;
 }
 
@@ -75,6 +75,6 @@ void print_buffer(char* buffer, int buffer_size) {
         printf("%c ", buffer[i]);
     }
     printf("\n");
-
+    
     return;
 }
