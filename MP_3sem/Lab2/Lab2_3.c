@@ -94,7 +94,7 @@ status find_and_count_substr(char* filename, char* substr, answer** answ, int* a
     }
     char buf[4096];
     int str_count = 0, temp, index = 0;
-    
+
     (*answ) = (answer*)malloc(sizeof(answer)*1);
     if (*answ == NULL) {
         return MEMORY_ERROR;
@@ -138,7 +138,9 @@ int main(int argc, char* argv[]) {
         for (int i = 0; i < answ_len; ++i) {
             printf("%d - str_num; %d - symb\n", answ[i].str_number , answ[i].symbol);
         }
+        free(answ);
     }
+    
 
 
     return 0;
