@@ -132,7 +132,7 @@ status is_convex(int* result, int n, ...) {
     return OK;
 }
 
-status power(int base, int exponent, double *result) {
+status power(double base, int exponent, double *result) {
     if(exponent < 0) {
         return INVALID_DATA;
     }
@@ -172,8 +172,11 @@ status polynom(double *result, double x, int exponent, ...) {
         if (stat_pow != OK) {
             return stat_pow;
         }
+        //printf("%lf - summ  %d - base\n", (arr[i] * exp), i);
         summ += (arr[i] * exp);
+        
     }
+    
     *result = summ;
     
     return OK;
@@ -181,7 +184,7 @@ status polynom(double *result, double x, int exponent, ...) {
 
 int main(int argc, char* argv[]) {
 
-    int result;
+    int result; 
     status stat = is_convex(&result, 10, 5, 1.5, 1.9, 1.9, 0, 2, 2,0, 2, 2 );
     if (stat != OK) {
         responce(stat);
@@ -193,11 +196,12 @@ int main(int argc, char* argv[]) {
         printf("not.\n");
     }
     double result1;
-    status poly_stat = polynom(&result1, 1.0, 3, 1.0, 1.0, 1.0, 5.0);
+    double x = 2.0;
+    status poly_stat = polynom(&result1, x, 2, 1.0, -8.0, 2.0);
     if (poly_stat != OK) {
         responce(poly_stat);
         return 1;
     }
-    printf("%lf\n", result1);
+    printf("%.2lf - value of polynom in x:%.1lf\n", result1, x);
     return 0;
 }
