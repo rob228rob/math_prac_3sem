@@ -1,12 +1,14 @@
 #include <stdio.h>
 #include <math.h>
 #include <stdlib.h>
+#include <stdarg.h>
+
 
 typedef enum {
     OK,
     UNDEFINED_BEHAVIOR,
     MEMORY_ERROR,
-    INVALID_STRING,
+    INVALID_DATA,
     OPEN_FILE_ERROR,
     NO_ONE_FOUND
 } status;
@@ -22,7 +24,7 @@ void responce(int status) {
     if (status == OK) printf("OK.\n");
     if (status == UNDEFINED_BEHAVIOR) printf("UNDEFINED_BEHAVIOR.\n");
     if (status == MEMORY_ERROR) printf("MEMORY_ERROR.\n");
-    if (status == INVALID_STRING) printf("INVALID_STRING.\n");
+    if (status == INVALID_DATA) printf("INVALID_DATA.\n");
     if (status == OPEN_FILE_ERROR) printf("OPEN_FILE_ERROR.\n");
     if (status == NO_ONE_FOUND) printf("NO_ONE_FOUND.\n");
 }
@@ -37,111 +39,105 @@ status is_flag(int symb) {
     return UNDEFINED_BEHAVIOR;
 }
 
-void get_length(char* str, int* result) {
+int get_length(char* str) {
     if (str == NULL) {
-        *result = 0;
-        return;
+        return 0;
     }
     int index = 0;
     while (str[index] != '\0')
     {
         index++;
     }
-    *result = index;
+    return index;
 }
 
-void swap(char *a, char *b) {
-    char temp = *a;
-    *a = *b;
-    *b = temp;
-}
-
-status string_cpy(char* source_str, char* str_cpy, int length) {
-    if (str_cpy == NULL || source_str == NULL) {
-        return MEMORY_ERROR;
+status find_n_count_substr(answer** answ, int* answ_count, char* substr, int count, ...) {
+    va_list args;
+    va_start(args, count);
+    int sub_length = get_length(substr);
+    if (count <= 0) {
+        return INVALID_DATA;
     }
-    for (int i = 0; i < length; ++i) {
-        str_cpy[i] = source_str[i];
-    }
-    str_cpy[length] = '\0';
-    return OK;
-}
-
-status my_strstr(char* buf,char* substr, answer* answ) {
-    int length_buf, length_substr;
-    get_length(buf, &length_buf);
-    get_length(substr, &length_substr);
-
-    for (int i = 0; i <= length_buf - length_substr; ++i) {
-        for (int j = 0; j < length_substr; ++j) {
-            if (buf[i + j] != substr[j]) {
-                break;
-            }
-            if (j + 1 == length_substr) {
-                answ->str_number = -1;
-                answ->symbol = i;
-                return OK;
-            }
-        }
-    }
-    return NO_ONE_FOUND;
-}
-
-status find_and_count_substr(char* filename, char* substr, answer** answ, int* answer_length) {
-    FILE* file = fopen(filename, "r");
-    if (file == NULL) {
-        return OPEN_FILE_ERROR;
-    }
-    char buf[4096];
-    int str_count = 0, temp, index = 0;
-
-    (*answ) = (answer*)malloc(sizeof(answer)*1);
+    int ans_index = 0;
+    (*answ) = (answer*)malloc(sizeof(answer));
     if (*answ == NULL) {
         return MEMORY_ERROR;
     }
-
-    while (fgets(buf, 4096 , file) != NULL)
+    //printf("TESTOK\n");
+    while (count > 0)
     {
-        str_count++;
-        status find_stat = my_strstr(buf, substr, &(*answ)[index]);
-        if (find_stat == OK) {
-            //printf("!!!!!!!!!!\n");
-            answer* temp = (answer*)realloc(*answ, sizeof(answer)*(index+2));
-            if (temp == NULL) {
-                return MEMORY_ERROR;
-            }
-            (*answ) = temp;
-            (*answ)[index].str_number = str_count;
-            index++;    
+        count--;
+        char* filename = va_arg(args, char*);
+        FILE* file = fopen(filename, "r");
+        if (file == NULL) {
+            return OPEN_FILE_ERROR;
         }
+        //printf("%s\n", filename);
+        int curr_char;
+        int found = 0;
+        int row = 1;
+        int column = 1;
+        while ((curr_char = fgetc(file)) != EOF) 
+        {
+            column++;
+            int sub_ind = 0;
+            //printf("%c\n", curr_char);
+            if (curr_char == '\n') {
+                row++;
+                column = 1;
+            }
+            for (int i = 0; i < sub_length; ++i) {
+                //curr_char = getc(file);
+                if (curr_char == substr[sub_ind]) {
+                    //printf("%c - FOUND\n", curr_char);
+                    curr_char = fgetc(file);
+                    sub_ind++;
+                } else {
+                    break;
+                }
+            }
+            if (sub_ind == sub_length) {
+                (*answ)[ans_index].symbol = column - 1;
+                (*answ)[ans_index].str_number = row;
+                answer* temp = (answer*)realloc(*answ, sizeof(answer)*(ans_index+2));
+                if (temp == NULL) {
+                    return MEMORY_ERROR;
+                }
+                (*answ) = temp;
+                ans_index++;
+
+                int arrival = fseek(file, -sub_length, SEEK_CUR);
+                //printf("STR FOUND\n");
+            } else {
+                int arrival = fseek(file, -sub_ind, SEEK_CUR);
+            }
+
+            
+        }
+        fclose(file);
+
     }
-    *answer_length = index;
-    fclose(file);
+    *answ_count = ans_index;
+    va_end(args);
     return OK;
 }
 
 int main(int argc, char* argv[]) {
-    if (argc < 3) {
-        printf("Need more arguments.\n");
+    answer* answ;
+    int answ_count;
+    char* substr = "ab";
+
+    status find_status = find_n_count_substr(&answ, &answ_count,substr, 1, "1.txt");
+    if (find_status != OK) {
+        responce(find_status);
         return 1;
     }
-    
-    char* substr = argv[1]; 
-    for (int i = 2; i < argc; ++i) {
-        answer* answ; int answ_len;
-        status substr_stat = find_and_count_substr(argv[i], substr, &answ, &answ_len);
-        if (substr_stat != OK) {
-            responce(substr_stat);
-            return 1;
-        }
 
-        for (int i = 0; i < answ_len; ++i) {
-            printf("%d - str_num; %d - symb\n", answ[i].str_number , answ[i].symbol);
-        }
-        free(answ);
+    for (int i = 0; i < answ_count; ++i) {
+        printf("str [%s] was found.[ line: %d ] [ column: %d ]\n", substr, answ[i].str_number, answ[i].symbol);
     }
-    
 
+    free(answ);
 
     return 0;
 }

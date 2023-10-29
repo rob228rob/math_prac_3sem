@@ -35,40 +35,41 @@ status power(int base, int exponent, double *result) {
     return OK;
 }
 
-double old_approximate_power(double b, double e) {
-    union {
-        double d;
-        long long i;
-    } u = { b };
-    u.i = (long long)(4606853616395542500L + e * (u.i - 4606853616395542500L));
-    return u.d;
-}
-
 status average_geometric(int amount, double* result, ...) {
     if (amount <= 0) {
         return INVALID_DATA;
     }
-    
+    int bin_flag = 0;
+    if (amount%2==0) {
+        bin_flag = 1;
+    }
     va_list stack;
     va_start(stack, result);
-    __int64_t mult = 1;
+    double mult = 1;
+    double power = 1.0/amount;
     for (int i = 0; i < amount; ++i) {
-        mult *= (__int64_t)va_arg(stack, int);
+        double num = va_arg(stack, double);
+        //printf("num: %lf; pow: %lf\n", num, power);
+        if (bin_flag == 1 && num < 0) {
+            va_end(stack);
+            return INVALID_DATA;
+        }
+        mult *= pow(num, power);
     }
-    
-    *result = pow(mult, 0.5);
+
+    *result = mult;
     va_end(stack);
     return OK;
 }
 
 int main(int argc, char* argv[]) {
     double result;
-    status geom_status = average_geometric(6, &result, 10, 2, 10,  10, 20, 15);
+    status geom_status = average_geometric(6, &result, 10000.0, 2.0, 10.0,  100.0, 20.0, 15.0);
     if (geom_status != OK) {
         responce(geom_status);
         return 1;
     }
-    printf("res is: %.2lf\n", result);
+    printf("res is: %lf\n", result);
 
     double result2;
     status rec_pow = power(10, 4, &result2);
