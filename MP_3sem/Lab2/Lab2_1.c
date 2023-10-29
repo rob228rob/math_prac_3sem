@@ -72,7 +72,7 @@ status to_upper_string(char** result_str, char* source_str) {
         return source_length;
     }
 
-    (*result_str) = (char*)malloc(length*sizeof(char) + 1);
+    (*result_str) = (char*)malloc((length+1)*sizeof(char));
     if (*result_str == NULL) {
         return MEMORY_ERROR;
     }
@@ -228,6 +228,7 @@ int main(int argc, char* argv[]) {
         int st = get_length(result_str,&length);
 
         printf("%s - reversed string.\n",result_str);
+        return 0;
 
     } 
     else if (flag[1] == 'u') {
@@ -238,6 +239,7 @@ int main(int argc, char* argv[]) {
         }
         printf("%s - new str.\n", result_str);
         free(result_str);
+        return 0;
     }
     else if (flag[1] == 'n') {
         status sort = sorted_string(argv[2], &result_str);
@@ -247,12 +249,14 @@ int main(int argc, char* argv[]) {
         }
         printf("%s - sorted string.\n", result_str);
         free(result_str);
+        return 0;
     } 
     else if (flag[1] == 'c') {
         if (argc < 4) {
             printf("Incorrect number of arguments for [ c ] flag.\n");
         }
         srand(atoi(argv[2]));
+
         int index = 2;
         while (index + 1 < argc)
         {

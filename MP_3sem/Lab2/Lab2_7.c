@@ -26,7 +26,7 @@ status find_root_by_bisection(double left_border, double right_border, double ep
     double fl = function(left_border);
     double fr = function(right_border);
     
-    if (fl * fr >= 0.0) {
+    if (fl * fr >= epsilon) {
         return NO_ROOT; 
     }
     
@@ -51,11 +51,11 @@ status find_root_by_bisection(double left_border, double right_border, double ep
 
 
 double equation1(double x) {
-    return -x + 3 ;
+    return -x;
 }
 
 double equation2(double x) {
-    return 8*x + 20;
+    return x - 20;
 }
 
 double equation3(double x) {
@@ -71,7 +71,7 @@ int main(int argc, char* argv[]) {
         printf("%.2lf - root of equation.\n", result);
     }
 
-    status method_status2 = find_root_by_bisection(-100, 100, 1e-10, equation2, &result );
+    status method_status2 = find_root_by_bisection(-100, 0, 1e-10, equation2, &result );
     if (method_status2 != OK) {
         responce(method_status2);
         return 1;
