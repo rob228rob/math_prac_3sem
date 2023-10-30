@@ -41,6 +41,7 @@ void *search_in_file(void *arg) {
         args->status = OPEN_FILE_ERROR;
         pthread_exit(NULL);
     }
+    
     args->status = 2;
     char line[256];
     int line_num = 0;
@@ -78,7 +79,7 @@ int main(int argc, char *argv[]) {
     pthread_t tid;
     thread_args args;
     int counter = 0;
-    //pthread_join(tid, NULL);
+
     while (fscanf(file_list, "%s", filename) != EOF) {
         printf("Search in file: %s\n", filename);
         
@@ -87,30 +88,30 @@ int main(int argc, char *argv[]) {
             printf("Cannot open file\n");
             continue;
         }
-            strcpy(args.filename, filename);
-            strcpy(args.search_str,"!!!!");
-            
-            // Создание нового потока
-            if (pthread_create(&tid, NULL, search_in_file, &args) != 0) {
-                printf("Thread create error\n");
-                continue;
-            }
-            pthread_join(tid, NULL);
-            if (args.status != STRING_FOUND) {
-                responce(args.status);
-            } else {
-                printf("String was found %s, line: %d\n", filename, args.result_line);
-            }
-            if (args.status == STRING_FOUND) {
-                counter++;
-            }
-            // Ожидание завершения потока
-            //pthread_join(tid, NULL);
+        strcpy(args.filename, filename);
+        strcpy(args.search_str,"!!!!");
         
+        // Create new thread
+        if (pthread_create(&tid, NULL, search_in_file, &args) != 0) {
+            printf("Thread create error\n");
+            continue;
+        }
+
+        //expected that creating thread was finished
+        pthread_join(tid, NULL);
+        if (args.status != STRING_FOUND) {
+            responce(args.status);
+        } else {
+            printf("String was found %s, line: %d\n", filename, args.result_line);
+        }
+        if (args.status == STRING_FOUND) {
+            counter++;
+        }
         
         fclose(file);
     }
     fclose(file_list);
+
     if (counter == 0) {
         printf("\nString was not found in Source file: %s\n",path_to_file_list);
     }
