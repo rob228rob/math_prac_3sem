@@ -6,23 +6,26 @@
 #include <stdlib.h>
 
 
-enum statuses {
-    ok,
-    memory_error,
-    invalid_data,
-    undefined_behavior,
-    open_file_error,
-    write_to_file_error
-};
+typedef enum {
+    OK,
+    UNDEFINED_BEHAVIOR,
+    MEMORY_ERROR,
+    INVALID_DATA,
+    OPEN_FILE_ERROR,
+    INCORRECT_FIELD,
+    NO_ONE_FOUND
+} STATUS;
 
-char* response(int status) {
-    if (status == ok) return "ok";
-    else if (status == invalid_data) return "invalid data";
-    else if (status == memory_error) return "memory error";
-    else if (status == undefined_behavior) return "undefined behavior";
-    else if (status == open_file_error) return "open_file_error";
-    else if (status == write_to_file_error) return "write_to_file_error";
+void responce(int status) {
+    if (status == OK) printf("OK.\n");
+    if (status == UNDEFINED_BEHAVIOR) printf("UNDEFINED_BEHAVIOR.\n");
+    if (status == MEMORY_ERROR) printf("MEMORY_ERROR.\n");
+    if (status == INVALID_DATA) printf("INVALID_DATA.\n");
+    if (status == OPEN_FILE_ERROR) printf("OPEN_FILE_ERROR.\n");
+    if (status == INCORRECT_FIELD) printf("INCORRECT_FIELD.\n");
+    if (status == NO_ONE_FOUND) printf("NO_ONE_FOUND.\n");
 }
+
 
 bool is_num(const char* str) {
   int length = strlen(str);
@@ -41,158 +44,229 @@ bool is_flag(char str) {
   return false;
 }
 
-void print_array(int* array_answ, int length) {
-  if (array_answ == NULL) {
-    return;
+STATUS generate_name(char** filename, char* old_name) {
+  *filename = (char*)malloc((strlen(old_name) + 5) * sizeof(char));
+  if (*filename == NULL) {
+    return MEMORY_ERROR;
   }
-
-  for (int i = 0; i < length; ++i) {
-    if (array_answ[i] != 0) {
-      printf("%d \n", array_answ[i]);
-    }
-
+  for (int i = 4; i < strlen(old_name) + 4; ++i) {
+    (*filename)[i] = old_name[i-4];
   }
+  (*filename)[0] = 'o';
+  (*filename)[1] = 'u';
+  (*filename)[2] = 't';
+  (*filename)[3] = '_';
+  (*filename)[strlen(old_name) + 4] = '\0';
+
+  return OK;
 }
 
-enum statuses write_to_file(char* file_name, char flag, char* line) {
-    char output_file_name[4+strlen(file_name)];
-    char pattern[] = "out_";
-    printf("5.-1\n");
-    strcat(pattern, file_name);
-
-    FILE* file = fopen("output", "w");
-    if (file == NULL) {
-      return write_to_file_error;
+STATUS delete_arabic_numerals(char* input_filename, char* output_filename) {
+  if (input_filename == NULL || output_filename == NULL) {
+    return INVALID_DATA;
+  }
+  FILE* in = fopen(input_filename, "r");
+  if (in == NULL) {
+    return OPEN_FILE_ERROR;
+  }
+  FILE* out = fopen(output_filename, "w");
+  if (out == NULL) {
+    fclose(in);
+    return OPEN_FILE_ERROR;
+  }
+  int ch = fgetc(in);
+  while (1)
+  {
+    if (isdigit(ch)) {
+      fputc(' ', out);
+    } else {
+      fputc(ch, out);
     }
-    fputs(line, file);
-    printf("5.0\n");
-    if (line == NULL) {
-      printf("errrrrr\n");
-      return memory_error;
+    ch = fgetc(in);
+    if (ch == '\n') {
+      continue;
     }
-
-    switch (flag)
-    {
-    case 'i':
-
-    case 's':
-
-    break;
-    case 'd':
-        printf("ok5.1\n");
-        //fputs(line, file);
-        //fprintf(file, "%s", line);
-        printf("ok5.2\n");
-        break;
-    break;
-    case 'a':
-
-    break;
-    default:
-      
+    if (ch == EOF) {
       break;
     }
-    fclose(file);
-
-    printf("ok5.3\n");
-    
-    return ok;
+  }
+  fclose(in);
+  fclose(out);
+  return OK;   
 }
 
+STATUS count_latin_letters(char* input_filename, char* output_filename)
+{
+  if (input_filename == NULL || output_filename == NULL) {
+    return INVALID_DATA;
+  }
+  FILE* in = fopen(input_filename, "r");
+  if (in == NULL) {
+    return OPEN_FILE_ERROR;
+  }
+  FILE* out = fopen(output_filename, "w");
+  if (out == NULL) {
+    fclose(in);
+    return OPEN_FILE_ERROR;
+  }
+    int count = 0;
+    int c = 0;
+    while((c = fgetc(in)))
+    {
+        if((c >= 'a' && c <= 'z') || (c >='A' && c <= 'Z')) count ++;
+        else if(c == '\n' || c==EOF)
+        {
+            if(fprintf(out, "%d\n", count) == EOF) return UNDEFINED_BEHAVIOR;
+            count = 0;
+        }
+        if(c == EOF) break;
+    }
+    fclose(in);
+    fclose(out);
+    return OK;
+}
 
-enum statuses delete_arabic_numerals(char* input_file_name, char* line, char flag) {
-    
-    for (int i = 0; i < strlen(line); ++i) {
-        if (line[i] >= '0' || line[i] <= '9') {
-            line[i] = ' ';
+STATUS count_extra_symbols(char* input_filename, char* output_filename)
+{  
+  if (input_filename == NULL || output_filename == NULL) {
+    return INVALID_DATA;
+  }
+  FILE* in = fopen(input_filename, "r");
+  if (in == NULL) {
+    return OPEN_FILE_ERROR;
+  }
+  FILE* out = fopen(output_filename, "w");
+  if (out == NULL) {
+    fclose(in);
+    return OPEN_FILE_ERROR;
+  }
+    int count = 0;
+    int c;
+    do
+    {
+        c = fgetc(in);
+        if(!isalnum(c))
+        {        
+        count++;
+        if(c == '\n' || c==EOF)
+        {
+            fprintf(out, "%d\n", count - 1);
+            count = 0;
+        }
+        }
+    } while(c != EOF);
+
+    fclose(in);
+    fclose(out);
+    return OK;
+} 
+
+STATUS convert_into_ascii(char* input_filename, char* output_filename)
+{
+  if (input_filename == NULL || output_filename == NULL) {
+    return INVALID_DATA;
+  }
+  FILE* in = fopen(input_filename, "r");
+  if (in == NULL) {
+    return OPEN_FILE_ERROR;
+  }
+  FILE* out = fopen(output_filename, "w");
+  if (out == NULL) {
+    fclose(in);
+    return OPEN_FILE_ERROR;
+  }
+    int c;
+    while((c = fgetc(in)) != EOF)
+    {
+        if(!(c >= '0' && c <= '9'))
+        {
+            if(c == '\n' || c == EOF)
+            {
+                if(fprintf(out, "\n") == EOF) return UNDEFINED_BEHAVIOR;
+            }
+            else
+            {
+                if(fprintf(out, "%X", c) == EOF) return UNDEFINED_BEHAVIOR;
+            }
+        }
+        else
+        {
+            if(fprintf(out, "%c", c) == EOF) return UNDEFINED_BEHAVIOR;
         }
     }
-    printf("ok3.1\n");
-    enum statuses temp = write_to_file(input_file_name, flag, line);
-
-    printf("ok3.2\n");
-    if (temp != ok) {
-      
-        return memory_error;
-    }
-    printf("ok3.3\n");
-    return ok;
+    fclose(in);
+    fclose(out);
+    return OK;
 }
 
 int main(int argc, char* argv[]) {
-    
-    char* input_file_name = (char*)malloc(sizeof(char)*strlen(argv[2]) + 1);
-    
-    if (input_file_name == NULL) {
-        printf("%s\n", response(memory_error));
-        return 1;
+    if (argc < 3 || argc > 4) {
+      printf("Incorrect num of args.\n");
+      return 1;
     }
-
-    strcpy(input_file_name, argv[2]);
+    char *output;
+    int changed = false;
+    if (argc == 3) {
+      generate_name(&output, argv[2]);
+      changed = true;
+    } else if (argc == 4) {
+      output = argv[3];
+    }
+    //printf("%s %s\n", output, argv[2]);
     
     char flag = argv[1][1];
     char flag_char;
     char flag_component = argv[1][0]; 
-    
     if (flag == 'n') {
-        //output_file_name = (char*)malloc(sizeof(char)*strlen(argv[2]) + 1);
-        //strcpy(output_file_name, argv[2]);
         if ((flag_component != '-' && flag_component != '/') || (!is_flag(flag)) ) {
           printf("Incorrect flag.\n");
-        return 1;
+          if (changed) free(output); 
+          return 1;
         }
         flag_char = flag;
     } else {
-        //output_file_name = (char*)malloc(sizeof(char)*(strlen(argv[2])) + 1);
-        //strcpy(output_file_name, argv[2]);
         if ((flag_component != '-' && flag_component != '/') || (!is_flag(flag)) ) {
           printf("Incorrect flag.\n");
-        return 1;
+          if (changed) free(output); 
+          return 1;
         }
         flag_char = flag;
     }
 
-    if (argc  > 4) {
-    printf("Incorrect num of args.\n");
-    return 0;
-    }
-    
-    FILE* file = fopen(input_file_name, "r");
-    if (file == NULL) {
-      printf("File cant open.\n");
-      return 1;
-    }
-
-    printf("ok\n");
     switch (flag)
     {
     case 'i':
-
+      STATUS status1 = count_latin_letters(argv[2], output);
+      if (status1 != OK) {
+        responce(status1);
+        if (changed) free(output); 
+        return 1;
+      }
     break;
     case 'd':
-      char  buffer[128];
-      printf("ok1\n");
-      while (fgets(buffer, 128, file) != NULL)
-      {
-          printf("ok2\n");
-          enum statuses status = delete_arabic_numerals(input_file_name, buffer, flag_char);
-          if (status != ok) {
-              printf("%s vbhnj\n", response(status));
-              fclose(file);
-              return 1;
-          }
-          //free(buffer);
-          //buffer = (char*)malloc(129*sizeof(char));
+      printf("-d fl\n");
+      STATUS status = delete_arabic_numerals(argv[2], output);
+      if (status != OK) {
+        responce(status);
+        if (changed) free(output); 
+        return 1;
       }
-      printf("last\n");
-    
-    
     break;
     case 's':
-
+      STATUS status2 = count_extra_symbols(argv[2], output);
+      if (status2 != OK) {
+        responce(status2);
+        if (changed) free(output); 
+        return 1;
+      }
     break;
     case 'a':
-
+      STATUS status3 = convert_into_ascii(argv[2], output);
+      if (status3 != OK) {
+        responce(status3);
+        if (changed) free(output); 
+        return 1;
+      }
     break;
 
     default:
