@@ -4,37 +4,62 @@
 #include <stdlib.h>
 #include <malloc.h>
 #include <stdbool.h>
+#include <ctype.h>
 
-enum statuses {
-    ok,
-    memory_error,
-    invalid_data,
-    undefined_behavior,
-    open_file_error
-};
+typedef enum {
+    OK,
+    UNDEFINED_BEHAVIOR,
+    MEMORY_ERROR,
+    INVALID_DATA,
+    OPEN_FILE_ERROR,
+    INCORRECT_FIELD,
+    NO_ONE_FOUND,
+    NOT_A_NUMBER
+} STATUS;
 
+void responce(int status) {
+    if (status == OK) printf("OK.\n");
+    if (status == UNDEFINED_BEHAVIOR) printf("UNDEFINED_BEHAVIOR.\n");
+    if (status == MEMORY_ERROR) printf("MEMORY_ERROR.\n");
+    if (status == INVALID_DATA) printf("INVALID_DATA.\n");
+    if (status == OPEN_FILE_ERROR) printf("OPEN_FILE_ERROR.\n");
+    if (status == INCORRECT_FIELD) printf("INCORRECT_FIELD.\n");
+    if (status == NO_ONE_FOUND) printf("NO_ONE_FOUND.\n");
+    if (status == NOT_A_NUMBER) printf("NOT_A_NUMBER.\n");
+}
 
-int convertToDecimal(char number[], int base) {
+STATUS to_upper(char symb, int* res) {
+    if (symb >= 'a' && symb <= 'z') {
+        *res = symb - 'a' + 'A';
+    } else {
+        *res = symb;
+    }
+}
+
+STATUS convert_to_decimal(char number[], int base, int* _decimal) {
     int decimal = 0;
     int power = 1;
     int length = strlen(number);
+    if (length > 8) {
+        return INVALID_DATA;
+    }
     
-    for (int i = length - 1; i >= 0; i--) {
+    for (int i = length - 2; i >= 0; i--) {
         int digit;
-        
         if (number[i] >= '0' && number[i] <= '9') {
             digit = number[i] - '0';
         } else if (number[i] >= 'A' && number[i] <= 'Z') {
-            digit = number[i] - 'A' + 10;
+            digit = number[i] - 'A' + 11;
         }
         decimal += digit * power;
         power *= base;
     }
     
-    return decimal;
+    *_decimal = decimal;
+    return OK;
 }
 
-enum statuses convertFromDecimal(int decimalNumber, int base, char** num) {
+STATUS convert_from_decimal(int decimalNumber, int base, char** num) {
     char convertedNumber[100];
     int index = 0;
     
@@ -51,13 +76,12 @@ enum statuses convertFromDecimal(int decimalNumber, int base, char** num) {
         index++;
     }
     *num = (char*)malloc(sizeof(char)*(index+1));
-    
     if (*num == NULL) {
-        return memory_error;
+        return MEMORY_ERROR;
     }
 
     strcpy((*num),convertedNumber);
-    return ok;
+    return OK;
 }
 
 void max_of_array(int* array, int length, int* result) {
@@ -66,38 +90,6 @@ void max_of_array(int* array, int length, int* result) {
         max_val = fmax(max_val, array[i]);
     }
     *result = max_val;
-}
-
-char* response(int status) {
-    if (status == ok) return "ok";
-    else if (status == invalid_data) return "invalid data";
-    else if (status == memory_error) return "memory error";
-    else if (status == undefined_behavior) return "undefined behavior";
-    else if (status == open_file_error) return "open_file_error";
-}
-
-enum statuses find_next_num(char* line, int* index, char** num) {
-    int start_index = *index;
-    while (line[*index] != '\t' && line[*index] != '\n' &&
-    line[*index] != ' ' )
-    {
-        (*index)++;
-    }
-
-    (*num) = (char*)malloc((*index - start_index)*sizeof(char) + 1);
-    if (*num == NULL) {
-        return memory_error;
-    }
-    while (line[start_index] != '\t' && line[start_index] != '\n' &&
-    line[start_index] != ' ' )
-    {
-        (*num)[start_index] = line[start_index];
-        start_index++;
-        
-    }
-
-    printf("%s.\n", *num);
-    return ok;    
 }
 
 int number_system(char* num) {
@@ -124,16 +116,74 @@ int number_system(char* num) {
     }
 }
 
-
-enum statuses write_num_to_file(char* filename, char* num) {
-    FILE* file = fopen(filename, "w");
-    if (file == NULL) {
-        return open_file_error;
+STATUS find_base_and_write(char *input, char *output) {
+    FILE* in = fopen(input, "r");
+    if (in == NULL) {
+        return OPEN_FILE_ERROR;
     }
-    int base = number_system(num);
-    fprintf(file, "%s %d %d", num, base,convertToDecimal(num, base));
-    fclose(file);
-    return ok;
+    FILE* out = fopen(output, "w");
+    if (out == NULL) {
+        return OPEN_FILE_ERROR;
+    }
+    int ch = fgetc(in);
+    while ((ch )!= EOF)
+    {
+
+
+        int capacity = 10, index = 0;
+        char* str = (char*)malloc(sizeof(char)*(capacity+1));
+        if (str == NULL) {
+            return MEMORY_ERROR;
+        }
+        
+        if (ch > '9') {
+            to_upper(ch, &ch);
+        }
+        str[index] = ch;
+        while (ch != '\n' && ch != '\n' && ch != ' ')
+        {   
+            if (ch == '\n' || ch == ' ' || ch == '\t') continue; 
+            index++;
+            ch = fgetc(in);
+            if (ch > '9') {
+                to_upper(ch, &ch);
+            }
+            if (ch == EOF) break;
+            if (!isalnum(ch) && ch != '\n' && ch != '\t' && ch != ' ' && ch != EOF)  {
+                return INCORRECT_FIELD;
+            }
+            str[index] = ch;
+            if (capacity - index < 2) {
+                capacity *= 2;
+                char* tmp = (char*)realloc(str, capacity+1);
+                if ( tmp == NULL) {
+                    return MEMORY_ERROR;
+                }
+                str = tmp;
+            }
+        }
+        str[strlen(str)] = '\0';
+        //printf("%s\n", str);
+        int base = number_system(str);
+        int decimal;
+        int _status = convert_to_decimal(str, base, &decimal);
+        if (_status == OK) {
+            fprintf(out, "converted: %d; base: %d; current: %s ", decimal, base, str);
+        } else {
+            fprintf(out, "too large number: %s", str);
+        }
+        ch = fgetc(in);
+        if (ch == '\n' || ch == ' ' || ch == '\t') continue; 
+        if (!isalnum(ch) && !(ch == '\n' || ch == '\t' || ch != ' ' ) ) {
+            return INCORRECT_FIELD;
+        }
+    }
+    
+
+
+    fclose(in);
+    fclose(out);
+    return OK;
 }
 
 int main(int argc, char* argv[]) {
@@ -141,54 +191,12 @@ int main(int argc, char* argv[]) {
         printf("Invalig number of arguments.\n");
         return 1;
     }
-
-    char* output_file_name = (char*)malloc(1 + sizeof(char)*strlen(argv[2]));
-    char* input_file_name = (char*)malloc(1 + sizeof(char)*strlen(argv[1]));
-    strcpy(input_file_name, argv[1]);
-    strcpy(output_file_name, argv[2]);
-    if (input_file_name == NULL || output_file_name == NULL) {
-        printf("Memory allocation error.\n");
+    char *in = argv[1];
+    char *out = argv[2];
+    STATUS status = find_base_and_write(in, out);
+    if (status != OK) {
+        responce(status);
         return 1;
     }
-
-    FILE* input_file = fopen(input_file_name, "r");
-    if (input_file == NULL) {
-        printf("File can't open\n");
-        return 1;
-    }
-
-    char* line = (char*)calloc(512, sizeof(char));
-    if (line == NULL) {
-        fclose(input_file);
-        printf("Memory allocation error.\n");
-        return 1;
-    }
-    while (fgets(line, 512-1, input_file)) 
-    {
-        int index = 0;
-        int last_index = 0;
-        while (last_index < strlen(line))
-        {
-            char* num;
-            enum statuses status1 = find_next_num(line, &index, &num);
-            if (status1 != ok) {
-                printf("%s.\n", response(status1));
-            }
-            enum statuses status2 =  write_num_to_file(output_file_name, num);
-            if (status2 != ok) {
-                printf("%s.\n", response(status2));
-            }
-            last_index += index;
-            free(num);
-        } 
-        free(line);
-        line = (char*)calloc(512,sizeof(char));
-        if (line == NULL) {
-            fclose(input_file);
-            printf("line can't be readed.\n");
-            return 1;
-        }
-    }
-    free(line);
-    fclose(input_file);
+    return 0;
 }
