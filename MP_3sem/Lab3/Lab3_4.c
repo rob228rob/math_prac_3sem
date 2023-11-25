@@ -174,7 +174,7 @@ typedef struct {
 void clear_adress(Adress *adress) {
     clear_str(&(adress->building));
     clear_str(&(adress->street));
-    //clear_str(&(adress->person_id));
+    clear_str(&(adress->person_id));
     clear_str(&(adress->city));
 }
 
@@ -361,7 +361,7 @@ void free_mail(Mail *mail) {
     mail->is_delete = 1;
     clear_str(&(mail->time_create));
     clear_str(&(mail->time_deliver));
-    //clear_str(&(mail->mail_id));
+    clear_str(&(mail->mail_id));
     clear_adress(&(mail->adress));
 }
 
@@ -581,9 +581,11 @@ STATUS read_mail(Post post, Mail *mail) {
         return INVALID_DATA;
     }
     mail->weight = weight;
-
-    init_str(&(mail->time_create), set_time(0));
-    init_str(&(mail->time_deliver), set_time(2));
+    char* time1 = set_time(0), *time2 = set_time(2);
+    init_str(&(mail->time_create), time1);
+    free(time1);
+    init_str(&(mail->time_deliver), time2);
+    free(time2);
 
     return OK;
 }
@@ -639,6 +641,10 @@ int main(int argc, char* argv[]) {
             printf("Input your Mail.\n");
             STATUS read_m =  read_mail(post, &mail);
             if (read_m != OK) {
+                for (int i = 0; i < post.size; ++i) {
+                    free_mail(&(post.mails[i]));
+                }
+                free(post.mails);
                 responce(read_m);
                 return 1;
             }
@@ -646,6 +652,10 @@ int main(int argc, char* argv[]) {
             STATUS stat = add_mail(&post, mail);
             if (stat != OK) {
                 responce(stat);
+                for (int i = 0; i < post.size; ++i) {
+                    free_mail(&(post.mails[i]));
+                }
+                free(post.mails);
                 return 1;
             }
             printf("Mail was added.");
@@ -660,11 +670,19 @@ int main(int argc, char* argv[]) {
             char* personal_id = (char*)malloc(sizeof(char)*(32+1));
             if (personal_id == NULL) {
                 responce(MEMORY_ERROR);
+                for (int i = 0; i < post.size; ++i) {
+                    free_mail(&(post.mails[i]));
+                }
+                free(post.mails);
                 return 1;
             }
             scanf("%s", personal_id);
             if (strlen(personal_id) != 6 || !is_num(personal_id)) {
                 responce(INVALID_DATA);
+                for (int i = 0; i < post.size; ++i) {
+                free_mail(&(post.mails[i]));
+                }
+                free(post.mails);
                 free(personal_id);
                 return 1;
             } 
@@ -673,6 +691,10 @@ int main(int argc, char* argv[]) {
             if (del_mail != OK) {
                 responce(del_mail);
                 free(personal_id);
+                for (int i = 0; i < post.size; ++i) {
+                free_mail(&(post.mails[i]));
+                }
+                free(post.mails);
                 return 1;
             }
             printf("Mail with pers_id:[%s] delete successfully.\n", personal_id);
@@ -689,17 +711,29 @@ int main(int argc, char* argv[]) {
             char* mail_id = (char*)malloc(sizeof(char)*(32+1));
             if (mail_id == NULL) {
                 responce(MEMORY_ERROR);
+                for (int i = 0; i < post.size; ++i) {
+                    free_mail(&(post.mails[i]));
+                }
+                free(post.mails);
                 return 1;
             }
             fscanf(stdin, "%s", mail_id);
             if (strlen(mail_id) != 14 || !is_num(mail_id)) {
                 responce(INVALID_DATA);
+                for (int i = 0; i < post.size; ++i) {
+                free_mail(&(post.mails[i]));
+                }
+                free(post.mails);
                 return 1;
             } 
             Mail mail;
             STATUS find_by_id = find_mail_by_mail_id(&post, mail_id, &mail);
             if (find_by_id != OK && find_by_id != NO_ONE_FOUND ) {
                 responce(find_by_id);
+                for (int i = 0; i < post.size; ++i) {
+                    free_mail(&(post.mails[i]));
+                }
+                free(post.mails);
                 return 1;
             }
             if (find_by_id == NO_ONE_FOUND) {
@@ -720,9 +754,11 @@ int main(int argc, char* argv[]) {
                     continue;
                 }
                 char* deliver_time = post.mails[i].time_deliver.str;
-                int sec1 = parse_date(set_time(0));
+                char* curr_time = set_time(0);
+                int sec1 = parse_date(curr_time);
+                free(curr_time);
                 if (sec1 == INVALID_DATA) {
-                    printf("inval data\n");
+                    responce(INVALID_DATA);
                     continue;
                 }
                 int sec2 = parse_date(deliver_time);
@@ -753,7 +789,9 @@ int main(int argc, char* argv[]) {
                     continue;
                 }
                 char* deliver_time = post.mails[i].time_deliver.str;
-                int sec1 = parse_date(set_time(0));
+                char* curr_time = set_time(0);
+                int sec1 = parse_date(curr_time);
+                free(curr_time);
                 if (sec1 == INVALID_DATA) {
                     printf("inval data\n");
                     continue;
