@@ -1,87 +1,104 @@
 #include <stdio.h>
+#include <string.h>
 #include <math.h>
 #include <stdlib.h>
-#include <string.h>
+#include <stdbool.h>
+#include <ctype.h>
 
-typedef enum {
-    OK,
-    UNDEFINED_BEHAVIOR,
-    MEMORY_ERROR,
-    INVALID_DATA,
-    OPEN_FILE_ERROR,
-    INCORRECT_FIELD,
-    NO_ONE_FOUND,
-    NOT_A_NUMBER
-} STATUS;
-
-void responce(int status) {
-    if (status == OK) printf("OK.\n");
-    if (status == UNDEFINED_BEHAVIOR) printf("UNDEFINED_BEHAVIOR.\n");
-    if (status == MEMORY_ERROR) printf("MEMORY_ERROR.\n");
-    if (status == INVALID_DATA) printf("INVALID_DATA.\n");
-    if (status == OPEN_FILE_ERROR) printf("OPEN_FILE_ERROR.\n");
-    if (status == INCORRECT_FIELD) printf("INCORRECT_FIELD.\n");
-    if (status == NO_ONE_FOUND) printf("NO_ONE_FOUND.\n");
-    if (status == NOT_A_NUMBER) printf("NOT_A_NUMBER.\n");
-}
-
-int check_double(char** word)
-{
-    double value;
-    char* end;
-    value = strtod(*word, &end);
-
-    if(*end != 0)
-    {
-        return not_a_number;
+bool eps_validation (char* eps) {
+    int eps_length = strlen(eps);
+    bool flag = false;
+    for (int i = 0; i < eps_length; i++) {
+        if (isdigit(eps[i]) || eps[i] == 'e' || eps[i] == '.'|| eps[i] == '-') {
+            flag = true;
+        }
+        else { 
+            flag = false; break; 
+        }
     }
-    if(value <= 0.0)
-    {
-        return negative_or_zero;
-    }
-    return positive;
+    return flag;
 }
 
-double row_a(int n , double x, double current)
-{
-    if (n == 0) return 1;
-    return current*x/n;
-}
-double row_b(int n, double x, double current)
-{
-    if(n == 0) return 1;
-    return current * (-1) * x * x / ((2*n-1) * (2*n));
-}
-double row_c(int n, double x, double current)
-{
-    if(n == 0) return 1;
-    for(int i = 3*(n-1)+1; i < 3*n; i++)
-    {
-        current /= i;
-    }
-    current = current * 3 * 3 *  n * n * x * x;
-    return current;
-}
-double row_d(int n, double x, double current)
-{
-    n++;
-    if(n == 1) return -(x * x)/2;
-    current *= (2*n-1);
-    current /= 2*n;
-    current *= x * x * (-1);
-    return current;
+int factorial (int number) {
+    if (number == 0 || number == 1) return 1;
+    else if (number > 1) return number * factorial(number - 1);
+    else return -1;
 }
 
-double row(double row_(int n, double x, double current), double epsilon, double x)
-{
-    double value_current = row_(0, x, 0);
-    double value_next = row_(1, x, value_current);
-    int n = 1;
-    while(fabs(value_next) > epsilon)
-    {
-        n++;
-        value_current += value_next;
-        value_next = row_(n, x, value_next);
+int two_factorial (int number) {
+    if (number == 0 || number == 1) return 1;
+    else if (number > 1) return number * two_factorial(number - 2);
+    else return -1;
+}
+
+double first_row (double value, double eps) {
+    double n_arg = 0.0;
+    double prev = 0.0;
+    double summ = pow(value, n_arg) / (double)factorial((int)n_arg);
+    while (fabs(summ - prev) > eps) {
+        n_arg++;
+        prev = summ;
+        summ += pow(value, n_arg) / (double)factorial((int)n_arg);
     }
-    return value_next + value_current;
+    return summ;
+}
+
+double second_row (double value, double eps) {
+    double n_arg = 0.0;
+    double prev = 0.0;
+    double summ = (pow(-1, n_arg) * pow(value, 2 * n_arg)) / ((double)factorial(2 * n_arg));
+    while (fabs(summ - prev) > eps) {
+        n_arg++;
+        prev = summ;
+        summ += (pow(-1, n_arg) * pow(value, 2 * n_arg)) / ((double)factorial(2 * n_arg));
+    }
+    return summ;
+}
+
+double third_row (double value, double eps) {
+    double n_arg = 1;
+    double prev;
+    double summ = 1, elem = 1;
+    do {
+        prev = elem;
+        elem *= (9 * n_arg * n_arg * value * value) / (9 * n_arg * n_arg - 9 * n_arg + 2);
+        n_arg++;
+        summ += elem;
+    } while (fabs(elem - prev) > eps);
+    return summ;
+}
+
+double fourth_row (double value, double eps) {
+    double n_arg = 1.0;
+    double prev = 0.0;
+    double summ = (pow(-1.0, n_arg) * (double)two_factorial(2 * n_arg - 1) * pow(value, 2 * n_arg)) / ((double)two_factorial(2 * n_arg));
+    while (fabs(summ - prev) > eps) {
+        n_arg++;
+        prev = summ;
+        summ += (pow(-1.0, n_arg) * (double)two_factorial(2 * n_arg - 1) * pow(value, 2 * n_arg)) / ((double)two_factorial(2 * n_arg));
+    }
+    return summ;
+}
+
+int main (int argc, char * argv[]) {
+    if (argc == 3) {
+        double value = atof(argv[1]);
+        double eps = atof(argv[2]);
+
+        if (eps_validation(argv[2]) == true) {   
+            printf("a. %lf\n", first_row(value, eps));
+            printf("b. %lf\n", second_row(value, eps));
+            printf("c. %lf\n", third_row(value, eps));
+            printf("d. %lf\n", fourth_row(value, eps));
+        }
+        else {
+            printf("Invalid eps\n");
+            return 1;
+        }
+    }
+    else {
+        printf("Wrong flag!\n");
+        return 1;
+    }
+    return 0;
 }
