@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <malloc.h>
 #include <stdbool.h>
+#include <ctype.h>
 
 enum statuses {
     ok,
@@ -38,7 +39,7 @@ enum statuses convert_to_base(int num, int base, char** final_result) {
 
 bool is_valid_number(char* num, int base) {
     char valid_digits[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    
+
     for(int i = 0; i < strlen(num); i++) {
         bool is_valid_digit = false;
         for(int j = 0; j < base; j++) {
@@ -52,6 +53,7 @@ bool is_valid_number(char* num, int base) {
             return false;
         }
     }
+    
     
     return true;
 }
@@ -93,7 +95,10 @@ int main() {
     
     printf("Enter the base of the numbers: \n");
     scanf("%d", &base_from);
-    
+    if (base_from > 36 || base_from < 2) {
+        printf("Inval base");
+        return 1;
+    }
     int* arr_abs_value = (int*)malloc(sizeof(int)*1);
     int index = 0;
 
