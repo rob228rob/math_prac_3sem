@@ -13,7 +13,7 @@ typedef enum {
     INCORRECT_FIELD
 } status;
 
-void responce(int status) {
+void response(int status) {
     if (status == OK) printf("OK.\n");
     if (status == UNDEFINED_BEHAVIOR) printf("UNDEFINED_BEHAVIOR.\n");
     if (status == MEMORY_ERROR) printf("MEMORY_ERROR.\n");
@@ -48,13 +48,34 @@ void swap(char *a, char *b) {
 }
 
 
-int is_float(char* str) {
-    for (int i = 0; i < strlen(str); ++i) {
-        if ((str[i] < '0' || str[i] > '9') && str[i] != '.') {
-            return 0;
-        }
+int is_float(const char* str) {
+    if (str == NULL || *str == '\0') {
+        return -1; 
     }
-    return 1;
+    
+    int hasDigit = 0;
+    int hasDot = 0;
+    
+    if (*str == '-' || *str == '+') {
+        str++;  
+    }
+    
+    while (*str != '\0') {
+        if (*str == '.') {
+            if (hasDot) {
+                return 0;  
+            }
+            hasDot = 1;
+        } else if (*str >= '0' && *str <= '9') {
+            hasDigit = 1;
+        } else {
+            return 0; 
+        }
+        
+        str++;
+    }
+    // return false if number hasn't got any numerous;
+    return hasDigit; 
 }
 
 int is_digit(char* str) {
@@ -66,8 +87,8 @@ int is_digit(char* str) {
     return 1;
 }
 
-status read_from_file(Employee** employee, int* count_employee, char* filename) {
-    if (count_employee <= 0) {
+int read_from_file(Employee** employee, int* count_employee, char* filename) {
+    if (count_employee <= 0 || filename == NULL) {
         return INVALID_DATA;
     }
     
@@ -75,22 +96,24 @@ status read_from_file(Employee** employee, int* count_employee, char* filename) 
     if (file == NULL) {
         return OPEN_FILE_ERROR;
     }
+
     char buf[256];
     int capacity = 20, count = 0;
     *employee = (Employee*)malloc(sizeof(Employee)*capacity);
     if (*employee == NULL) {
+        fclose(file);
         return MEMORY_ERROR;
     }
     
     while (fgets(buf, 255, file) != NULL)
     {
-
         count++;
         if (capacity - count < 2) {
             capacity *= 2;
             Employee* tmp = (Employee*)realloc(*employee, sizeof(Employee)*capacity);
             if (tmp == NULL) {
-                free(employee);
+                free(*employee);
+                fclose(file);
                 return MEMORY_ERROR;
             }
             *employee = tmp;
@@ -106,7 +129,8 @@ status read_from_file(Employee** employee, int* count_employee, char* filename) 
         ind++;
 
         if (!is_digit(id)) {
-            free(employee);
+            free(*employee);
+            fclose(file);
             return INCORRECT_FIELD;
         }
         (*employee)[count-1].id = atoi(id);
@@ -138,14 +162,15 @@ status read_from_file(Employee** employee, int* count_employee, char* filename) 
         }
         salary[local_ind] = '\0';
         local_ind = 0;
-        ind= 0;
+        ind = 0;
         if (!is_float(salary)) {
-            free(employee);
+            free(*employee);
+            fclose(file);
             return INCORRECT_FIELD;
         }
-        (*employee)[count - 1].salary = (double) atoi(salary);
+        char* endptr;
+        (*employee)[count - 1].salary = strtod(salary, &endptr);
         
-        //printf("id:%d name:%s surn:%s salary:%lf \n", (*employee)[count-1].id,(*employee)[count-1].name, (*employee)[count-1].surname, (*employee)[count-1].salary);
     }
     *count_employee = count;
     fclose(file);
@@ -155,33 +180,43 @@ status read_from_file(Employee** employee, int* count_employee, char* filename) 
 int cmp1(const void* a, const void* b) {
     Employee* empA = (Employee*)a;
     Employee* empB = (Employee*)b;
-    if (empA->id != empB->id) {
-        return empA->id < empB->id;
-    } else if (strcmp(empA->name, empB->name) != 0) {
-        return empA->name < empB->name;
-    } else if (strcmp(empA->surname, empB->surname) != 0) {
-        return empA->surname < empB->surname;
-    } else {
-        return empA->salary < empB->salary;
+    double eps = 1e-9;
+
+    if (empA->salary != empB->salary) {
+        return (empA->salary - empB->salary) < eps;
     }
+    else if (strcmp(empA->name, empB->name) != 0) {
+        return strcmp(empA->name, empB->name);
+    } 
+    else if (strcmp(empA->surname, empB->surname) != 0) {
+        return strcmp(empA->surname, empB->surname);
+    } 
+    else if (empA->id != empB->id) {
+        return empA->id < empB->id;
+    } 
 }
 
 int cmp2(const void* a, const void* b) {
     Employee* empA = (Employee*)a;
     Employee* empB = (Employee*)b;
-    if (empA->id != empB->id) {
-        return empA->id > empB->id;
-    } else if (strcmp(empA->name, empB->name) != 0) {
-        return empA->name > empB->name;
-    } else if (strcmp(empA->surname, empB->surname) != 0) {
-        return empA->surname > empB->surname;
-    } else {
-        return empA->salary > empB->salary;
+    double eps = 1e-9;
+
+    if (empA->salary != empB->salary) {
+        return (empA->salary - empB->salary) < eps;
     }
+    else if (strcmp(empA->name, empB->name) != 0) {
+        return -strcmp(empA->name, empB->name);
+    } 
+    else if (strcmp(empA->surname, empB->surname) != 0) {
+        return -strcmp(empA->surname, empB->surname);
+    } 
+    else if (empA->id != empB->id) {
+        return empA->id > empB->id;
+    } 
 }
 
-status write_to_file(Employee* employee, int emp_count, char* filename) {
-    if (emp_count <= 0) {
+int write_to_file(Employee* employee, int emp_count, char* filename) {
+    if (emp_count <= 0 || employee == NULL || filename == NULL) {
         return INVALID_DATA;
     }
     FILE* file = fopen(filename, "w");
@@ -210,11 +245,10 @@ int main(int argc, char* argv[]) {
     
     Employee* employee;
     int emp_count;
-    status read_status = read_from_file(&employee, &emp_count, argv[1]);
-
+    int read_status = read_from_file(&employee, &emp_count, argv[1]);
     if (read_status!= OK) {
-        responce(read_status);
-        return 1;
+        response(read_status);
+        return read_status;
     }
 
     if (flag[1] == 'a') {
@@ -224,11 +258,11 @@ int main(int argc, char* argv[]) {
         qsort(employee, emp_count, sizeof(Employee), cmp2);
     }
 
-    status write_status = write_to_file(employee, emp_count, argv[3]);
+    int write_status = write_to_file(employee, emp_count, argv[3]);
     if (write_status != OK) {
-        responce(write_status);
+        response(write_status);
         free(employee);
-        return 1;
+        return write_status;
     }
 
     for (int i = 0; i < emp_count; ++i) {

@@ -4,6 +4,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>   
+#include <ctype.h>
+
 
 typedef enum {
     OK,
@@ -16,7 +18,7 @@ typedef enum {
     ALREADY_EXIST
 } STATUS;
 
-void responce(int status) {
+void response(int status) {
     if (status == OK) printf("OK.\n");
     if (status == UNDEFINED_BEHAVIOR) printf("UNDEFINED_BEHAVIOR.\n");
     if (status == MEMORY_ERROR) printf("MEMORY_ERROR.\n");
@@ -65,7 +67,7 @@ void reverse(char* result_string) {
     }
 }
 
-int divison(int a, int b) {
+int division(int a, int b) {
     int quotient = 0;
     int remainder = 0;
 
@@ -81,57 +83,39 @@ int divison(int a, int b) {
     return quotient;
 }
 
-STATUS convert_to_base(int num, int base, char** final_result) {
-    char digits[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    int index = 0;
-    char* result = (char*)malloc(sizeof(char)*100);
-    if (result == NULL) {
-        return MEMORY_ERROR;
-    }
-    
-    if(num == 0 || base < 2 || base > 36 || base % 2 != 0) {
+int decimal_to_base(int src_num, int r, char** final_result) {
+    if (r < 1 || r > 5) {
         return INVALID_DATA;
     }
-    
-    while(num > 0) {
-        result[index++] = digits[num % base];
-        num = num / base;
+    if (src_num == 0) {
+        *final_result = (char*)malloc(sizeof(char)*(1+1));
+        if (*final_result == NULL) {
+            return MEMORY_ERROR;
+        }
+        strcpy(*final_result, "0");
+        return OK;
     }
-    result[index] = '\0';
-    (*final_result) = (char*)malloc(sizeof(char)*strlen(result) + 1);
-    
-    if (*final_result == NULL) {
-        free(result);
-        return MEMORY_ERROR;
-    }
-
-    strcpy(*final_result, result);
-    free(result);
-    reverse(*final_result);
-    return OK;
-}
-
-STATUS decimal_to_base(int num, int r, char** final_result) {
-    if(num == 0 || r < 1 || r > 5) {
-        return INVALID_DATA;
-    }
-    
     char digits[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    int num = src_num;
+    if (src_num < 0) num = -num;
     int index = 0;
-    char* result = (char*)malloc(sizeof(char)*100);
+    char* result = (char*)malloc(sizeof(char) * (pow(2,r) + 1));
     if (result == NULL) {
         return MEMORY_ERROR;
     }
     int base = pow(2, r);
 
-    while(num > 0) {
-        result[index] = digits[num & (base-1)];
+    while (num != 0) {
+        result[index] = digits[abs(num) % base];
         index = add(index, 1);
-        num = divison(num, base);
+        num = division(num, base);
+    }
+    if (src_num < 0) {
+        result[index] = '-';
+        index = add(index, 1);
     }
     result[index] = '\0';
-    (*final_result) = (char*)malloc(sizeof(char)*strlen(result) + 1);
-    
+    (*final_result) = (char*)malloc(sizeof(char) * (strlen(result) + 1));
     if (*final_result == NULL) {
         free(result);
         return MEMORY_ERROR;
@@ -144,27 +128,18 @@ STATUS decimal_to_base(int num, int r, char** final_result) {
 }
 
 int main() {
-    int number = 8;
-    int r = 1;
+    int number = -5;
+    int r = 2;
     int base = pow(2, r);
 
-    char* result;
-    //printf("3 + 3 = ...%d\n", add(3,-4));
-    //printf("10 / 3 = ...%d\n", divison(100,3));
-    int stat = convert_to_base(number, base, &result);
-    if (stat != OK) {
-        responce(stat);
-        return stat;
-    }
-    printf("Res: %s\n", result);
-    free(result);
     char* res2;
     int stat_1 = decimal_to_base(number, r, &res2);
     if (stat_1 != OK) {
-        responce(stat_1);
+        response(stat_1);
         return stat_1;
     }
     printf("Res by bitwise op: %s\n", res2);
     free(res2);
+
     return 0;
 }
