@@ -11,7 +11,8 @@ typedef enum {
     MEMORY_ERROR,
     INVALID_DATA,
     OPEN_FILE_ERROR,
-    INCORRECT_FIELD
+    INCORRECT_FIELD,
+    ERROR_IN_PROCESS,
 } STATUS;
 
 void response(int status) {
@@ -44,6 +45,9 @@ int convert_str_to_int (const char *str, unsigned int * result, int base)
 
 int xor8_file(FILE* input, unsigned int * result)
 {
+    if (input == NULL) {
+        return ERROR_IN_PROCESS;
+    }
     *result = 0;
     unsigned char c;
     while(fread(&c, sizeof(unsigned char), sizeof(c), input))
@@ -56,6 +60,10 @@ int xor8_file(FILE* input, unsigned int * result)
 
 int xor32_file(FILE* input, unsigned char ** group, size_t size_group)
 {
+    if (input == NULL) {
+        return ERROR_IN_PROCESS;
+    }
+
     for(size_t i = 0; i < size_group; ++i)
     {
         (*group)[i] = 0;
@@ -80,7 +88,7 @@ int xor32_file(FILE* input, unsigned char ** group, size_t size_group)
     if(ferror(input))
     {
         free(buffer);
-        return OPEN_FILE_ERROR;
+        return ERROR_IN_PROCESS;
     }
     free(buffer);
     return OK;
@@ -88,6 +96,10 @@ int xor32_file(FILE* input, unsigned char ** group, size_t size_group)
 
 int count_xor_mask_file(FILE* input, unsigned int mask, unsigned int number, int * count_result)
 {
+    if (input == NULL) {
+        return ERROR_IN_PROCESS;
+    }
+
     *count_result = 0;
     number = 0;
     while(fread(&number, sizeof(unsigned int), 1, input) > 0)
@@ -99,7 +111,7 @@ int count_xor_mask_file(FILE* input, unsigned int mask, unsigned int number, int
     }
     if(ferror(input))
     {
-        return OPEN_FILE_ERROR;
+        return ERROR_IN_PROCESS;
     }
     return OK;
 }
@@ -133,7 +145,7 @@ int main(int argc, char* argv[])
             fclose(input);
             return OPEN_FILE_ERROR;
         }
-        printf("xor8 = %d", result_xor8);
+        printf("xor8 = %d\n", result_xor8);
     }
     else if(strcmp(argv[2], "xor32") == 0)
     {
