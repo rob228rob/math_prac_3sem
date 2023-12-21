@@ -15,7 +15,7 @@ typedef enum {
     NO_ONE_FOUND
 } status;
 
-void responce(int status) {
+void response(int status) {
     if (status == OK) printf("OK.\n");
     if (status == UNDEFINED_BEHAVIOR) printf("UNDEFINED_BEHAVIOR.\n");
     if (status == MEMORY_ERROR) printf("MEMORY_ERROR.\n");
@@ -30,7 +30,7 @@ typedef struct {
     char name[32];
     char surname[32];
     char group[32];
-    unsigned char* marks;
+    unsigned char marks[6];
 } Student;
 
 
@@ -63,14 +63,14 @@ int is_num(const char* str) {
     int length = strlen(str);
     for (int i = 0; i < length; ++i) {
     if (!isdigit(str[i])) {
-        return 1;
+        return 0;
     }
     }
-    return 0;
+    return 1;
 }
 
 status read_from_file(Student** students, int* count_employee, char* filename) {
-    if (count_employee <= 0) {
+    if (count_employee <= 0 || filename == NULL) {
         return INVALID_DATA;
     }
     
@@ -82,6 +82,7 @@ status read_from_file(Student** students, int* count_employee, char* filename) {
     int capacity = 20, count = 0;
     *students = (Student*)malloc(sizeof(Student)*capacity);
     if (*students == NULL) {
+        fclose(file);
         return MEMORY_ERROR;
     }
     
@@ -94,14 +95,22 @@ status read_from_file(Student** students, int* count_employee, char* filename) {
             Student* tmp = (Student*)realloc(*students, sizeof(Student)*capacity);
             if (tmp == NULL) {
                 free(*students);
+                fclose(file);
                 return MEMORY_ERROR;
             }
             *students = tmp;
+            tmp = NULL;
         }
         
         int ind = 0, local_ind = 0;
         char id[256], name[256], surname[256], group[256];
-        unsigned char *marks = (unsigned char*)malloc(sizeof(unsigned char)*6 + 1);
+        unsigned char* marks = (unsigned char*)malloc(sizeof(unsigned char)*5 + 4);
+        if (marks == NULL) {
+            fclose(file);
+            free(*students);
+            return MEMORY_ERROR;
+        }
+
         while (buf[ind] != ' ') {
             id[ind] = buf[ind];
             ind++;
@@ -109,9 +118,10 @@ status read_from_file(Student** students, int* count_employee, char* filename) {
         id[ind] = '\0'; 
         ind++;
 
-        if (is_num(id) == 1) {
+        if (is_num(id) == 0) {
             free(marks);
             free(*students);
+            fclose(file);
             return INCORRECT_FIELD;
         }
         (*students)[count-1].id = atoi(id);
@@ -151,13 +161,14 @@ status read_from_file(Student** students, int* count_employee, char* filename) {
             local_ind++; ind++;
         }
         marks[local_ind] = '\0';
-        if (strlen(marks) > 5 || is_num(marks) != 0) {
+        if (strlen(marks) > 5 || is_num(marks) == 0) {
             free(*students);
             free(marks);
+            fclose(file);
             return UNDEFINED_BEHAVIOR;
         }
-        (*students)[count - 1].marks = marks;
-        free(marks);
+        strcpy((*students)[count - 1].marks, marks);
+
     }
     *count_employee = count;
     fclose(file);
@@ -165,7 +176,7 @@ status read_from_file(Student** students, int* count_employee, char* filename) {
 }
 
 status find_student_by_name(Student *students, int count_student, char *name, Student **curr_student, int *curr_count) {
-    if (count_student <= 0 || students == NULL) {
+    if (count_student <= 0 || students == NULL || name == NULL) {
         return INVALID_DATA;
     }
     int capacity = 5;
@@ -184,6 +195,7 @@ status find_student_by_name(Student *students, int count_student, char *name, St
                 capacity *= 2;
                 Student* tmp = (Student*)realloc(*curr_student, sizeof(Student)*capacity);
                 if (tmp == NULL) {
+                    free(*curr_student);
                     return MEMORY_ERROR;
                 }
                 *curr_student = tmp;
@@ -191,6 +203,7 @@ status find_student_by_name(Student *students, int count_student, char *name, St
         }
     }
     if (ind == 0) {
+        free(*curr_student);
         return NO_ONE_FOUND;
     }
     *curr_count = ind;
@@ -198,7 +211,7 @@ status find_student_by_name(Student *students, int count_student, char *name, St
 }
 
 status find_student_by_surname(Student *students, int count_student, char *surname, Student **curr_student, int *curr_count) {
-      if (count_student <= 0 || students == NULL) {
+    if (count_student <= 0 || students == NULL || surname == NULL) {
         return INVALID_DATA;
     }
     int capacity = 5;
@@ -217,6 +230,7 @@ status find_student_by_surname(Student *students, int count_student, char *surna
                 capacity *= 2;
                 Student* tmp = (Student*)realloc(*curr_student, sizeof(Student)*capacity);
                 if (tmp == NULL) {
+                    free(*curr_student);
                     return MEMORY_ERROR;
                 }
                 *curr_student = tmp;
@@ -224,6 +238,7 @@ status find_student_by_surname(Student *students, int count_student, char *surna
         }
     }
     if (ind == 0) {
+        free(*curr_student);
         return NO_ONE_FOUND;
     }
     *curr_count = ind;
@@ -231,7 +246,7 @@ status find_student_by_surname(Student *students, int count_student, char *surna
 }
 
 status find_student_by_group(Student *students, int count_student, char *group, Student **curr_student, int *curr_count) {
-      if (count_student <= 0 || students == NULL) {
+      if (count_student <= 0 || students == NULL || group == NULL) {
         return INVALID_DATA;
     }
     int capacity = 5;
@@ -250,6 +265,7 @@ status find_student_by_group(Student *students, int count_student, char *group, 
                 capacity *= 2;
                 Student* tmp = (Student*)realloc(*curr_student, sizeof(Student)*capacity);
                 if (tmp == NULL) {
+                    free(*curr_student);
                     return MEMORY_ERROR;
                 }
                 *curr_student = tmp;
@@ -257,6 +273,7 @@ status find_student_by_group(Student *students, int count_student, char *group, 
         }
     }
     if (ind == 0) {
+        free(*curr_student);
         return NO_ONE_FOUND;
     }
     *curr_count = ind;
@@ -264,7 +281,7 @@ status find_student_by_group(Student *students, int count_student, char *group, 
 }
 
 status find_student_by_id(Student *students, int count_student, int curr_id, Student **curr_student, int *curr_count) {
-    if (count_student <= 0 || students == NULL) {
+    if (count_student <= 0 || students == NULL || curr_id < 0) {
         return INVALID_DATA;
     }
     int capacity = 5;
@@ -283,6 +300,7 @@ status find_student_by_id(Student *students, int count_student, int curr_id, Stu
                 capacity *= 2;
                 Student* tmp = (Student*)realloc(*curr_student, sizeof(Student)*capacity);
                 if (tmp == NULL) {
+                    free(*curr_student);
                     return MEMORY_ERROR;
                 }
                 *curr_student = tmp;
@@ -291,6 +309,7 @@ status find_student_by_id(Student *students, int count_student, int curr_id, Stu
         }
     }
     if (ind == 0) {
+        free(*curr_student);
         return NO_ONE_FOUND;
     }
     *curr_count = ind;
@@ -304,6 +323,9 @@ void print_student(Student *curr_stud, int curr_count) {
 }
 
 int summ(char* str, int* result) {
+    if (str == NULL) {
+        return -1;
+    }
     int sum = 0;
     for (int i = 0; i < strlen(str); ++i) {
         sum += (str[i] - '0');
@@ -340,7 +362,7 @@ int cmp_surname(const void *a, const void* b) {
     if (len_A != len_B) {
         return len_A < len_B;
     }
-    return stud_A->surname < stud_B->surname;
+    return strcmp(stud_A->surname, stud_B->surname);
 }
 
 int cmp_group(const void *a, const void* b) {
@@ -350,6 +372,10 @@ int cmp_group(const void *a, const void* b) {
 }
 
 status write_student_to_file(Student *curr_stud, int curr_count, char *filename) {
+    if (curr_stud == NULL || curr_count <= 0 || filename == NULL) {
+        return INVALID_DATA;
+    }
+    
     FILE *file = fopen(filename, "w");
     if (file == NULL) {
         return OPEN_FILE_ERROR;
@@ -363,6 +389,10 @@ status write_student_to_file(Student *curr_stud, int curr_count, char *filename)
 }
 
 status write_students_with_high_marks(Student *students, int count, char* filename) {
+    if (students == NULL || count <= 0 || filename == NULL) {
+        return INVALID_DATA;
+    }
+    
     FILE *file = fopen(filename, "w");
     if (file == NULL) {
         return OPEN_FILE_ERROR;
@@ -370,7 +400,8 @@ status write_students_with_high_marks(Student *students, int count, char* filena
     double general_avg_mark = 0;
     for (int i = 0; i < count; ++i) {
         int tmp;
-        if (summ(students[i].marks, &tmp) != 0) {
+        if (summ(students[i].marks, &tmp) <= 0) {
+            fclose(file);
             return INVALID_DATA;
         }
         general_avg_mark += tmp;
@@ -379,7 +410,8 @@ status write_students_with_high_marks(Student *students, int count, char* filena
     int is_exist = 0;
     for (int i = 0; i < count; ++i) {
         int str_summ;
-        if (summ(students[i].marks, &str_summ) != 0) {
+        if (summ(students[i].marks, &str_summ) <= 0) {
+            fclose(file);
             return INVALID_DATA;
         }
         double avg_mark = str_summ / 5.0;
@@ -389,6 +421,7 @@ status write_students_with_high_marks(Student *students, int count, char* filena
         }
     }
     if (!is_exist) {
+        fclose(file);
         return NO_ONE_FOUND;
     }
     fclose(file);
@@ -405,12 +438,12 @@ int main(int argc, char* argv[]) {
     Student* students;
     status status_stud = read_from_file(&students, &count_student, argv[1]);
     if (status_stud != OK) {
-        responce(status_stud);
+        response(status_stud);
         return 1;
     }
 
     char buf[4096];
-    while (1)
+    while (buf[0] != '0' || strlen(buf) <= 2 )
     {
         sleep(1);
         printf("\nInput action:\n[ 1 ] - Search by id;\n[ 2 ] - Search by surname;\n[ 3 ] - Search by name\n");
@@ -419,11 +452,13 @@ int main(int argc, char* argv[]) {
         printf("[ 7 ] - Sort by id;\n[ 8 ] - Sort by surname;\n[ 9 ] - Sort by name\n[ 10 ] - Sort by group\n[ 0 ] - QUIT\n");
 
         scanf("%s", buf);
-        if (buf[0] == '0' || strlen(buf) > 2 ) {
-            printf("Incorrect input or terminated zero.\n");
-            break;
-        }
+
         char *request = (char*)malloc(sizeof(char)*128);
+        if (request == NULL) {
+            free(students);
+            response(MEMORY_ERROR);
+            return MEMORY_ERROR;
+        }
         int act = atoi(buf);
         if (act == 1) {
             printf("Input id you found: ");
@@ -439,7 +474,7 @@ int main(int argc, char* argv[]) {
             int curr_count = 0;
             status find_stat = find_student_by_id(students, count_student, current_id, &curr_stud, &curr_count);
             if (find_stat!= OK) {
-                responce(find_stat);
+                response(find_stat);
                 free(students);
                 return 1;
             }
@@ -460,7 +495,7 @@ int main(int argc, char* argv[]) {
             int curr_count = 0;
             status find_stat = find_student_by_surname(students, count_student, request, &curr_student, &curr_count);
             if (find_stat != OK) {
-                responce(find_stat);
+                response(find_stat);
                 free(students);
                 return 1;
             }
@@ -480,7 +515,7 @@ int main(int argc, char* argv[]) {
             int curr_count;
             status find_stat = find_student_by_name(students, count_student, request, &curr_student, &curr_count);
             if (find_stat != OK) {
-                responce(find_stat);
+                response(find_stat);
                 free(students);
                 return 1;
             }
@@ -493,7 +528,7 @@ int main(int argc, char* argv[]) {
             scanf("%s", request);
             if (strlen(request) > 32) {
                 printf("Invalid group.\n");
-                // MAY BE LATER ADD CONTINUR INSTEAD OF RETURN 1
+                // MAY BE LATER ADD CONTINUE INSTEAD OF RETURN 1
                 free(students);
                 return 1;
             }
@@ -501,7 +536,7 @@ int main(int argc, char* argv[]) {
             int curr_count;
             status find_stat = find_student_by_group(students, count_student, request, &curr_student, &curr_count);
             if (find_stat != OK) {
-                responce(find_stat);
+                response(find_stat);
                 free(students);
                 return 1;
             }
@@ -522,13 +557,13 @@ int main(int argc, char* argv[]) {
             int curr_count = 0;
             status find_stat = find_student_by_id(students, count_student, current_id, &curr_stud, &curr_count);
             if (find_stat!= OK) {
-                responce(find_stat);
+                response(find_stat);
                 free(students);
                 return 1;
             }
             status write_stat = write_student_to_file(curr_stud, curr_count, argv[2]);
             if (write_stat != OK) {
-                responce(write_stat);
+                response(write_stat);
                 free(students);
                 return 1;
             }
@@ -538,7 +573,7 @@ int main(int argc, char* argv[]) {
         else if (act == 6) {
             status write_students = write_students_with_high_marks(students, count_student, argv[2]);
             if (write_students != OK) {
-                responce(write_students);
+                response(write_students);
                 free(students);
                 return 1;
             }
@@ -562,6 +597,7 @@ int main(int argc, char* argv[]) {
         }
         free(request);
     }
+    printf("Incorrect input or terminated zero.\n");
     
     free(students);
     return 0;

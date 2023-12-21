@@ -53,8 +53,8 @@ int is_float(const char* str) {
         return -1; 
     }
     
-    int hasDigit = 0;
-    int hasDot = 0;
+    int has_digit = 0;
+    int has_dot = 0;
     
     if (*str == '-' || *str == '+') {
         str++;  
@@ -62,12 +62,12 @@ int is_float(const char* str) {
     
     while (*str != '\0') {
         if (*str == '.') {
-            if (hasDot) {
+            if (has_dot) {
                 return 0;  
             }
-            hasDot = 1;
+            has_dot = 1;
         } else if (*str >= '0' && *str <= '9') {
-            hasDigit = 1;
+            has_digit = 1;
         } else {
             return 0; 
         }
@@ -75,7 +75,7 @@ int is_float(const char* str) {
         str++;
     }
     // return false if number hasn't got any numerous;
-    return hasDigit; 
+    return has_digit; 
 }
 
 int is_digit(char* str) {
