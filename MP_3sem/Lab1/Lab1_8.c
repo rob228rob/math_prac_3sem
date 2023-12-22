@@ -128,9 +128,12 @@ STATUS find_base_and_write(char *input, char *output) {
     int ch = fgetc(in);
     while ((ch )!= EOF)
     {
+        if (ch == ' ' || ch == '\n') {
+            ch = fgetc(in);
+            continue;
+        }
 
-
-        int capacity = 10, index = 0;
+        int capacity = 2, index = 0;
         char* str = (char*)malloc(sizeof(char)*(capacity+1));
         if (str == NULL) {
             return MEMORY_ERROR;
@@ -168,9 +171,9 @@ STATUS find_base_and_write(char *input, char *output) {
         int decimal;
         int _status = convert_to_decimal(str, base, &decimal);
         if (_status == OK) {
-            fprintf(out, "converted: %d; base: %d; current: %s ", decimal, base, str);
+            fprintf(out, "converted: %d; base: %d; current: %s\n", decimal, base, str);
         } else {
-            fprintf(out, "too large number: %s", str);
+            fprintf(out, "too large number: %s\n", str);
         }
         ch = fgetc(in);
         if (ch == '\n' || ch == ' ' || ch == '\t') continue; 
@@ -188,7 +191,7 @@ STATUS find_base_and_write(char *input, char *output) {
 
 int main(int argc, char* argv[]) {
     if (argc != 3) {
-        printf("Invalig number of arguments.\n");
+        printf("Invalid number of arguments.\n");
         return 1;
     }
     char *in = argv[1];
