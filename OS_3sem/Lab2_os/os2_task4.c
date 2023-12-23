@@ -41,7 +41,7 @@ void *search_in_file(void *arg) {
         args->status = OPEN_FILE_ERROR;
         pthread_exit(NULL);
     }
-    
+
     args->status = 2;
     char line[256];
     int line_num = 0;
@@ -62,7 +62,7 @@ void *search_in_file(void *arg) {
 
 int main(int argc, char *argv[]) {
     if (argc != 2) {
-        printf("Please, input source file.\n");
+        printf("Please, input only source file.\n");
         return 0;
     }
     
@@ -89,11 +89,12 @@ int main(int argc, char *argv[]) {
             continue;
         }
         strcpy(args.filename, filename);
-        strcpy(args.search_str,"!!!!");
+        strcpy(args.search_str,"1");
         
         // Create new thread
         if (pthread_create(&tid, NULL, search_in_file, &args) != 0) {
             printf("Thread create error\n");
+            fclose(file);
             continue;
         }
 
