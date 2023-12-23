@@ -1,215 +1,196 @@
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <limits.h>
-#include <errno.h>
-#include <ctype.h>
+#include<stdio.h>
+#include<string.h>
+#include<ctype.h>
 
-typedef enum {
-    OK,
-    UNDEFINED_BEHAVIOR,
-    MEMORY_ERROR,
-    INVALID_DATA,
-    OPEN_FILE_ERROR,
-    INCORRECT_FIELD,
-    ERROR_IN_PROCESS,
-} STATUS;
-
-void response(int status) {
-    if (status == OK) printf("OK.\n");
-    if (status == UNDEFINED_BEHAVIOR) printf("UNDEFINED_BEHAVIOR.\n");
-    if (status == MEMORY_ERROR) printf("MEMORY_ERROR.\n");
-    if (status == INVALID_DATA) printf("INVALID_DATA.\n");
-    if (status == OPEN_FILE_ERROR) printf("OPEN_FILE_ERROR.\n");
-    if (status == INCORRECT_FIELD) printf("INCORRECT_FIELD.\n");
-}
-
-
-int convert_str_to_int (const char *str, unsigned int * result, int base)
+typedef enum enum_key
 {
-    char *endptr;
-    errno = 0;
-    *result = strtol(str, &endptr, base);
+    WRONG_KEY_IDENTIFIED = 1,
+    XOR8,
+    XOR32,
+    MASK
+}KEY;
 
-    if (errno == ERANGE && *result == UINT_MAX)
-    {
-        return INVALID_DATA;
-    } else if (errno != 0 && *result == 0) {
-        return INVALID_DATA;
-    } else if (*endptr != '\0') {
-        return INVALID_DATA;
-    }
+typedef enum enum_errors {
+    WRONG_QUANTITY_OF_ARGUMENTS = 1,
+    FILE_ERROR,
+    WRONG_KEY,
+    NOT_IN_BASE,
+    INCORRECT_SYMBOL
+}ERRORS;
 
-    return OK;
-}
-
-int xor8_file(FILE* input, unsigned int * result)
-{
-    if (input == NULL) {
-        return ERROR_IN_PROCESS;
-    }
-    *result = 0;
-    unsigned char c;
-    while(fread(&c, sizeof(unsigned char), sizeof(c), input))
-    {
-        *result ^= c;
-    }
-
-    return OK;
-}
-
-int xor32_file(FILE* input, unsigned char ** group, size_t size_group)
-{
-    if (input == NULL) {
-        return ERROR_IN_PROCESS;
-    }
-
-    for(size_t i = 0; i < size_group; ++i)
-    {
-        (*group)[i] = 0;
-    }
-    size_t size_buffer = size_group;
-    unsigned char* buffer = (unsigned char *)malloc(sizeof(unsigned char) * size_buffer);
-    if(buffer == NULL)
-    {
-        return MEMORY_ERROR;
-    }
-    for(size_t i = 0; i < size_buffer; ++i)
-    {
-        buffer[i] = 0;
-    }
-    while( fread(buffer, sizeof(unsigned char), size_buffer, input) > 0)
-    {
-        for(size_t i = 0; i < size_group; ++i)
-        {
-            (*group)[i] ^= buffer[i];
-        }
-    }
-    if(ferror(input))
-    {
-        free(buffer);
-        return ERROR_IN_PROCESS;
-    }
-    free(buffer);
-    return OK;
-}
-
-int count_xor_mask_file(FILE* input, unsigned int mask, unsigned int number, int * count_result)
-{
-    if (input == NULL) {
-        return ERROR_IN_PROCESS;
-    }
-
-    *count_result = 0;
-    number = 0;
-    while(fread(&number, sizeof(unsigned int), 1, input) > 0)
-    {
-        if((number & mask) > 0)
-        {
-            (*count_result)++;
-        }
-    }
-    if(ferror(input))
-    {
-        return ERROR_IN_PROCESS;
-    }
-    return OK;
-}
+unsigned int key_validation(char* str);
+unsigned int for_xor_8(FILE* input);
+unsigned int for_xor_32(FILE* input);
+unsigned int for_mask(FILE* input, unsigned int hex);
+int binpow (int a, int n);
+unsigned int convert_to_10(char* str, int base);
+int validations_of_symbol(char* str, int base);
 
 int main(int argc, char* argv[])
 {
-    if (argc < 3)
+    if(argc < 3 || argc > 4)
     {
-        response(INVALID_DATA);
-        return INVALID_DATA;
+        printf("Wrong quantity of arguments, you need insert at least <FILE_DIRECTORY> <KEY> (<MASK> for key MASK)\n");
+        return WRONG_QUANTITY_OF_ARGUMENTS;
     }
 
-    FILE * input = fopen(argv[1], "rb");
-    if(input == NULL)
+    char* dir = argv[1];
+    int val_of_hex;
+    FILE* file = fopen(dir, "rb");
+    if(file == NULL)
     {
-        response(OPEN_FILE_ERROR);
-        return OPEN_FILE_ERROR;
+        perror("YOU'VE INPUT THE DIRECTORY OF THE FILE WRONGLY, TRY AGAIN");
+        return FILE_ERROR;
     }
-    if(strcmp(argv[2], "xor8") == 0)
+    unsigned int key = key_validation(argv[2]);
+    switch(key)
     {
-        if(argc != 3)
-        {
-            response(INVALID_DATA);
-            fclose(input);
-            return INVALID_DATA;
-        }
-        unsigned int result_xor8;
-        if (xor8_file(input, &result_xor8) != OK)
-        {
-            response(OPEN_FILE_ERROR);
-            fclose(input);
-            return OPEN_FILE_ERROR;
-        }
-        printf("xor8 = %d\n", result_xor8);
-    }
-    else if(strcmp(argv[2], "xor32") == 0)
-    {
-        if(argc != 3)
-        {
-            response(INVALID_DATA);
-            fclose(input);
-            return INVALID_DATA;
-        }
-        size_t size_group = 4;
-        unsigned char* group = (unsigned char *)malloc(sizeof(unsigned char) * size_group);
-        if(group == NULL)
-        {
-            fclose(input);
-            return MEMORY_ERROR;
-        }
-        if (xor32_file(input, &group, size_group) != OK)
-        {
-            response(OPEN_FILE_ERROR);
-            fclose(input);
-            free(group);
-            return OPEN_FILE_ERROR;
-        }
-        printf("xor8 = ");
-        for(size_t i = 0; i < size_group; ++i)
-        {
-            printf("%u ", group[i]);
-        }
-        printf("\n");
-        free(group);
-    }
-    else if (strcmp(argv[2], "mask") == 0)
-    {
-        if(argc != 4)
-        {
-            response(INVALID_DATA);
-            fclose(input);
-            return INVALID_DATA;
-        }
-        unsigned int mask;
-        if(convert_str_to_int(argv[3],&mask, 16) != OK)
-        {
-            response(INVALID_DATA);
-            fclose(input);
-            return INVALID_DATA;
-        }
-        int count_result;
-        unsigned int number = 0;
-        if(count_xor_mask_file(input, mask, number, &count_result) != OK)
-        {
-            response(OPEN_FILE_ERROR);
-            fclose(input);
-            return OPEN_FILE_ERROR;
-        }
-        printf("количество групп в файле, которые соответствуют маске %s: %u\n", argv[3],  count_result);
-    }
-    else
-    {
-        response(INVALID_DATA);
-        fclose(input);
-        return INVALID_DATA;
-    }
+        case XOR8:
+            printf("MODULO 2 SUMMARY OF ALL BYTES IN FILE WITH DIRECTORY %s\nEQUALS: %u\n", dir, for_xor_8(file));
+            fclose(file);
+            return 0;
+        case XOR32:
+            printf("MODULO 2 SUMMARY OF ALL 4-BYTES GROUPS IN FILE WITH DIRECTORY %s\nEQUALS: %u\n", dir, for_xor_32(file));
+            fclose(file);
+            return 0;
+        case MASK:
+            if (argc != 4) return 1;
+            val_of_hex = validations_of_symbol(argv[3], 16);
+            if(val_of_hex != 0)
+            {
+                printf("INCORRECT INPUT OF NUMBER IN BASE 16\n");
+                return val_of_hex;
+            }
 
-    if(input != NULL) fclose(input);
+            printf("QUANTITY OF 4-BYTES GROUPS, EQUALS TO HEX <%s>\tIN FILE: %s\nIS: %u",argv[3], dir, for_mask(file,convert_to_10(argv[3], 16)));
+            fclose(file);
+            return 0;
+        default:
+            printf("YOU'VE INPUT THE WRONG REY, PLEASE, USE ONLY <XOR32> <XOR32> <MASK> + 'MASK_IN_16_SYSTEM'\n");
+            fclose(file);
+            return WRONG_KEY;
+    }
+}
 
+unsigned int key_validation(char* str)
+{
+    int cmp_xor8 = strcmp(str, "xor8");
+    int cmp_xor32 = strcmp(str, "xor32");
+    int cmp_mask = strcmp(str, "mask");
+    if(cmp_mask != 0 && cmp_xor32 != 0 && cmp_xor8 != 0) return WRONG_KEY_IDENTIFIED;
+    if(cmp_xor8 == 0) return XOR8;
+    if(cmp_xor32 == 0) return XOR32;
+    if(cmp_mask == 0) return MASK;
+}
+
+unsigned int for_xor_8(FILE* input)
+{
+    unsigned int result = 0;
+    unsigned char c;
+    while(!feof(input))
+    {
+        fread(&c, sizeof(unsigned char), 1, input);
+        if(feof(input)) break;
+        result ^= c;
+    }
+    return result;
+}
+
+unsigned int for_xor_32(FILE* input)
+{
+    unsigned int result = 0;
+    unsigned char c;
+    while(!feof(input))
+    {
+        int i = 1;
+        unsigned int current_group = 0;
+
+        size_t read_bytes = fread(&current_group, 4*sizeof(unsigned char), 4, input);
+        if(read_bytes != 4) current_group <<= (4 - read_bytes)*8;
+
+        result ^= current_group;
+    }
+    return result;
+}
+
+int binpow (int a, int n)
+{
+    int res = 1;
+    while (n) {
+        if (n & 1)
+            res *= a;
+        a *= a;
+        n >>= 1;
+    }
+    return res;
+}
+
+unsigned int convert_to_10(char* str, int base)
+{
+    int length = strlen(str);
+    int pow = 0;
+    int result = 0;
+    for(int i = length - 1; i>=0; i--)
+    {
+        if(isdigit(str[i]))
+        {
+            int tmp = (int)(str[i] - '0');
+            result += tmp * (binpow(base, pow++));
+        }
+        else
+        {
+            result += ((int)(str[i] - 'a') + 10)*binpow(base, pow++);
+        }
+    }
+    return result;
+}
+
+int validations_of_symbol(char* str, int base)
+{
+    int i;
+    if(str[0] == '-') i = 1;
+    else i = 0;
+    for(i; i<strlen(str); ++i)
+    {
+        if(isdigit(str[i]))
+        {
+            if(str[i] - '0' >= base) return NOT_IN_BASE;
+        }
+        else
+        {
+            if(str[i] >= 'a' && str[i] <= 'z')
+            {
+                if(str[i] - 'a' + 10 >= base) return NOT_IN_BASE;
+            }
+            else  return INCORRECT_SYMBOL;
+        }
+    }
     return 0;
+}
+
+unsigned int for_mask(FILE* input, unsigned int hex)
+{
+    int count = 0;
+    unsigned int current_number = 0;
+    size_t read_bytes;
+    int i;
+    for(i = 0; i < 4; ++i)
+    {
+        unsigned char tmp;
+        fread(&tmp, sizeof(unsigned char), 1, input);
+        if(tmp == 0)
+        {
+            current_number <<= (4 - i)*8;
+            break;
+        }
+        current_number = (i == 3 ? current_number | tmp : (current_number | tmp) << 8 );
+    }
+    do
+    {
+        if((hex & current_number) == hex) count++;
+        unsigned char c = 0;
+        read_bytes = fread(&c, sizeof(unsigned char), 1, input);
+        if(read_bytes == 1) current_number = (current_number << 8) | c;
+    }while(!feof(input));
+    return count;
 }
