@@ -51,12 +51,20 @@ STATUS new_coefs(double argument, double** coefs_result, int power, ...) {
     }
     
     double coefs_old[power + 1];
+
     va_list args;
     va_start(args, power);
     for (int i = 0; i < power + 1; i++) {
         coefs_old[i] = va_arg(args, double);
     }
     va_end(args);
+    if (argument == 0) {
+        for (int i = 0; i < power; ++i) {
+        (*coefs_result)[i] = coefs_old[i];
+        
+        }   
+        return OK;     
+    }
     double multiply = 1.0;
     for (int i = 0; i < power + 1; i++) {
         (*coefs_result)[i] = solve_polynom(argument, coefs_old, power);
@@ -72,7 +80,7 @@ STATUS new_coefs(double argument, double** coefs_result, int power, ...) {
 int main(int argc, char * argv[]) {
     double* coefs;
     int power = 3;
-    int  stat = new_coefs(1, &coefs, power, 1.0, 1.0, 1.0, 1.0);
+    int  stat = new_coefs(0, &coefs, power, 1.0, 1.0, 1.0, 1.0);
     if (stat != OK) {
         responce(stat);
         return 1;
