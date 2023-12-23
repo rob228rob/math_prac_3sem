@@ -52,10 +52,9 @@ int get_length(char* str) {
 }
 
 status find_n_count_substr(answer** answ, int* answ_count, char* substr, int count, ...) {
-    va_list args;
-    va_start(args, count);
+
     int sub_length = get_length(substr);
-    if (count <= 0) {
+    if (count <= 0 || substr == NULL) {
         return INVALID_DATA;
     }
     int ans_index = 0;
@@ -63,16 +62,20 @@ status find_n_count_substr(answer** answ, int* answ_count, char* substr, int cou
     if (*answ == NULL) {
         return MEMORY_ERROR;
     }
-    //printf("TESTOK\n");
+
+    va_list args;
+    va_start(args, count);
     while (count > 0)
     {
         count--;
         char* filename = va_arg(args, char*);
         FILE* file = fopen(filename, "r");
         if (file == NULL) {
+            va_end(args);
+            free(*answ);
             return OPEN_FILE_ERROR;
         }
-        //printf("%s\n", filename);
+
         int curr_char;
         int found = 0;
         int row = 1;
@@ -81,38 +84,39 @@ status find_n_count_substr(answer** answ, int* answ_count, char* substr, int cou
         {
             column++;
             int sub_ind = 0;
-            //printf("%c\n", curr_char);
             if (curr_char == '\n') {
                 row++;
                 column = 1;
             }
             for (int i = 0; i < sub_length; ++i) {
-                //curr_char = getc(file);
+
                 if (curr_char == substr[sub_ind]) {
-                    //printf("%c - FOUND\n", curr_char);
                     curr_char = fgetc(file);
                     sub_ind++;
                 } else {
                     break;
                 }
             }
+
             if (sub_ind == sub_length) {
                 (*answ)[ans_index].symbol = column - 1;
                 (*answ)[ans_index].str_number = row;
                 answer* temp = (answer*)realloc(*answ, sizeof(answer)*(ans_index+2));
                 if (temp == NULL) {
+                    fclose(file);
+                    va_end(args);
+                    free(*answ);
                     return MEMORY_ERROR;
                 }
                 (*answ) = temp;
                 ans_index++;
 
                 int arrival = fseek(file, -sub_length, SEEK_CUR);
-                //printf("STR FOUND\n");
+
             } else {
                 int arrival = fseek(file, -sub_ind, SEEK_CUR);
             }
 
-            
         }
         fclose(file);
 
@@ -123,6 +127,9 @@ status find_n_count_substr(answer** answ, int* answ_count, char* substr, int cou
 }
 
 int main(int argc, char* argv[]) {
+    if (argc > 1) {
+        return 1;
+    }
     answer* answ;
     int answ_count;
     char* substr = "ab";
@@ -130,7 +137,7 @@ int main(int argc, char* argv[]) {
     status find_status = find_n_count_substr(&answ, &answ_count,substr, 1, "1.txt");
     if (find_status != OK) {
         responce(find_status);
-        return 1;
+        return find_status;
     }
 
     for (int i = 0; i < answ_count; ++i) {
