@@ -736,7 +736,7 @@ STATUS read_mail(Post post, Mail *mail)
     double weight;
     printf("Input weight:\n");
     fscanf(stdin, "%lf", &weight);
-    if (weight > 1000.0)
+    if (weight > 1000.0 || weight <= 0)
     {
         return INVALID_DATA;
     }
@@ -989,7 +989,7 @@ int main(int argc, char *argv[])
                 free(curr_time);
                 if (sec1 == INVALID_DATA)
                 {
-                    printf(INVALID_DATA);
+                    response(INVALID_DATA);
                     continue;
                 }
                 int sec2 = parse_date(deliver_time);
